@@ -1700,3 +1700,93 @@ button:disabled {
     width:100%;
   }
 }
+/* =========================
+   COMPACT HEADER V1.3
+========================= */
+
+.app-header{
+  min-height:auto;
+  padding:16px 18px;
+  border-radius:18px;
+  align-items:center;
+}
+
+.header-left{
+  gap:12px;
+}
+
+.app-logo{
+  width:48px;
+  height:48px;
+  border-radius:14px;
+  font-size:16px;
+}
+
+.app-header h1{
+  font-size:18px;
+  margin-bottom:4px;
+}
+
+.app-header p{
+  font-size:12px;
+}
+
+.header-actions{
+  display:grid;
+  grid-template-columns:auto auto auto;
+  gap:10px;
+  align-items:center;
+}
+
+.user-box{
+  grid-row:1 / span 2;
+  min-width:140px;
+  padding:6px 10px;
+}
+
+.header-actions .btn{
+  min-height:44px;
+  padding:0 18px;
+  border-radius:14px;
+}
+
+/* Search panel gọn hơn */
+.search-panel{
+  padding:12px;
+  border-radius:18px;
+  gap:10px;
+}
+
+.search-box input{
+  min-height:46px;
+}
+
+.search-actions .btn{
+  min-height:46px;
+  padding:0 20px;
+}
+
+/* Mobile */
+@media (max-width:768px){
+  .app-header{
+    padding:14px;
+  }
+
+  .header-actions{
+    width:100%;
+    grid-template-columns:1fr 1fr;
+  }
+
+  .user-box{
+    grid-column:1 / -1;
+    grid-row:auto;
+  }
+
+  .header-actions .btn{
+    width:100%;
+  }
+
+  .search-panel{
+    padding:10px;
+  }
+}
