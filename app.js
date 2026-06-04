@@ -1,10 +1,4 @@
-/* =========================================================
-   Warehouse Location Manager V1
-   app.js
-   ========================================================= */
-
-const API_BASE =
-"https://warehouse-api.longvanasb.workers.dev";
+const API_BASE = "https://warehouse-api.longvanasb.workers.dev";
 
 const $ = (id) => document.getElementById(id);
 
