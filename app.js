@@ -3,7 +3,8 @@
    app.js
    ========================================================= */
 
-const API_BASE = "";
+const API_BASE =
+"https://warehouse-api.longvanasb.workers.dev";
 
 const $ = (id) => document.getElementById(id);
 
