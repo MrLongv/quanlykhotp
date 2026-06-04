@@ -529,12 +529,20 @@ function renderTable() {
   const tbody = $("stockTableBody");
   if (!tbody) return;
 
-  const activeStocks = State.stocks.filter((s) => s.status === "in_stock");
+  const currentLocationIds = new Set(
+    State.locations.map((loc) => Number(loc.id))
+  );
+
+  const activeStocks = State.stocks.filter(
+    (s) =>
+      s.status === "in_stock" &&
+      currentLocationIds.has(Number(s.location_id))
+  );
 
   if (!activeStocks.length) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="9" class="text-center">Chưa có dữ liệu hàng tồn.</td>
+        <td colspan="9" class="text-center">Chưa có dữ liệu hàng tồn trong khu vực này.</td>
       </tr>
     `;
     return;
@@ -574,7 +582,6 @@ function renderTable() {
     })
     .join("");
 }
-
 /* =========================
    SEARCH
 ========================= */
