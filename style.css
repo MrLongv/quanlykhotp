@@ -1001,3 +1001,195 @@ button {
     height: 44px;
   }
 }
+/* =========================
+   WAREHOUSE MAP V1.1
+========================= */
+
+.warehouse-row-map {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 16px;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
+}
+
+.warehouse-row-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.warehouse-row-title h3 {
+  margin: 6px 0 0;
+  font-size: 15px;
+  color: #64748b;
+}
+
+.warehouse-row-title small {
+  color: #64748b;
+  font-weight: 800;
+}
+
+.row-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #111827;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+.shelf-map {
+  display: grid;
+  gap: 12px;
+}
+
+.shelf-map.three-level {
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+}
+
+.shelf-map.one-level {
+  grid-template-columns: 1fr;
+}
+
+.shelf-box {
+  min-height: 190px;
+  border: 2px solid #dbe3ee;
+  border-radius: 18px;
+  background: #f8fafc;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  overflow: hidden;
+  position: relative;
+}
+
+.shelf-box.empty {
+  border-color: #86efac;
+  background: linear-gradient(180deg, #ffffff, #ecfdf3);
+}
+
+.shelf-box.used {
+  border-color: #fbbf24;
+  background: linear-gradient(180deg, #ffffff, #fff7ed);
+}
+
+.shelf-box.full {
+  border-color: #f87171;
+  background: linear-gradient(180deg, #ffffff, #fef2f2);
+}
+
+.shelf-top {
+  padding: 11px 13px;
+  background: rgba(255, 255, 255, 0.75);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.shelf-top strong {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.shelf-top span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.shelf-content {
+  padding: 13px;
+}
+
+.shelf-empty {
+  height: 100%;
+  min-height: 88px;
+  border: 1px dashed #86efac;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  color: #166534;
+  background: rgba(220, 252, 231, 0.55);
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+.shelf-stock-list {
+  display: grid;
+  gap: 8px;
+}
+
+.shelf-stock-item {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 13px;
+  padding: 9px 10px;
+}
+
+.shelf-stock-item strong {
+  display: block;
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.shelf-stock-item span {
+  display: block;
+  margin-top: 3px;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.shelf-stock-item b {
+  display: inline-flex;
+  margin-top: 7px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #111827;
+  color: #ffffff;
+  font-size: 11px;
+}
+
+.shelf-more {
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.shelf-actions {
+  padding: 10px;
+  border-top: 1px solid rgba(226, 232, 240, 0.9);
+  background: rgba(255, 255, 255, 0.65);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.shelf-actions button {
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #ffffff;
+  color: #334155;
+  font-weight: 900;
+}
+
+.shelf-actions button:hover {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+}
+
+@media (max-width: 900px) {
+  .shelf-map.three-level {
+    grid-template-columns: 1fr;
+  }
+}
