@@ -181,7 +181,7 @@ function renderHeader() {
   $("currentAreaDesc").textContent =
     State.currentAreaId === 1
       ? "Sơ đồ Kho thành phẩm: mỗi dãy có 3 kệ/tầng"
-      : "Sơ đồ Lầu 6: quản lý theo từng dãy";
+      : "Sơ đồ Lầu 6: quản lý theo từng dãy và ô";
 }
 
 function renderSummary() {
@@ -252,9 +252,9 @@ function renderShelfBox(loc) {
   const statusClass = isEmpty ? "empty" : totalCarton >= 50 ? "full" : "used";
 
   const shelfName =
-    State.currentAreaId === 1
-      ? `KỆ ${loc.level_no}`
-      : `DÃY ${loc.row_no}`;
+  State.currentAreaId === 1
+    ? `KỆ ${loc.level_no}`
+    : `Ô ${String(loc.level_no).padStart(2, "0")}`;
 
   const stockHtml = isEmpty
     ? `
@@ -678,9 +678,9 @@ function openDetailModal(locationId) {
   $("detailModal").classList.remove("hidden");
   $("detailTitle").textContent = loc.location_code;
   $("detailSubTitle").textContent =
-    State.currentAreaId === 1
-      ? `Dãy ${loc.row_no} - Kệ ${loc.level_no}`
-      : `Lầu 6 - Dãy ${loc.row_no}`;
+  Number(loc.area_id) === 1
+    ? `Dãy ${loc.row_no} - Kệ ${loc.level_no}`
+    : `Lầu 6 - Dãy ${loc.row_no} - Ô ${String(loc.level_no).padStart(2, "0")}`;
 
   if (!stocks.length) {
     $("detailContent").innerHTML = `
@@ -793,9 +793,9 @@ async function loadLocationsForSelect(areaSelectId, locationSelectId) {
     .sort((a, b) => Number(a.row_no) - Number(b.row_no) || Number(a.level_no) - Number(b.level_no))
     .forEach((loc) => {
       const text =
-        areaId === 1
-          ? `${loc.location_code} - Dãy ${loc.row_no} - Kệ ${loc.level_no}`
-          : `${loc.location_code} - Dãy ${loc.row_no}`;
+  areaId === 1
+    ? `${loc.location_code} - Dãy ${loc.row_no} - Kệ ${loc.level_no}`
+    : `${loc.location_code} - Dãy ${loc.row_no} - Ô ${String(loc.level_no).padStart(2, "0")}`;
 
       select.insertAdjacentHTML(
         "beforeend",
@@ -815,10 +815,9 @@ async function loadAllLocationsForMove() {
   all.forEach((loc) => {
     const areaName = getAreaName(loc.area_id);
     const text =
-      Number(loc.area_id) === 1
-        ? `${areaName} - Dãy ${loc.row_no} - Kệ ${loc.level_no}`
-        : `${areaName} - Dãy ${loc.row_no}`;
-
+  Number(loc.area_id) === 1
+    ? `${areaName} - Dãy ${loc.row_no} - Kệ ${loc.level_no}`
+    : `${areaName} - Dãy ${loc.row_no} - Ô ${String(loc.level_no).padStart(2, "0")}`;
     select.insertAdjacentHTML(
       "beforeend",
       `<option value="${loc.id}">${esc(text)}</option>`
