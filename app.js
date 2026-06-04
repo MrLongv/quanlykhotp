@@ -163,6 +163,10 @@ function bindModalEvents() {
       openStockModal(null, locationId);
     }, 120);
   });
+
+  $("btnClosePartialExportModal")?.addEventListener("click", closePartialExportModal);
+  $("btnCancelPartialExport")?.addEventListener("click", closePartialExportModal);
+  $("btnConfirmPartialExport")?.addEventListener("click", confirmPartialExport);
 }
 
 /* =========================
@@ -370,6 +374,7 @@ function renderTable() {
           <td>
             <button class="link-btn" onclick="editStockFromAnyModal(${s.id})">Sửa</button>
             <button class="link-btn" onclick="openMoveModal(${s.id})">Chuyển</button>
+            <button class="link-btn" onclick="openPartialExportModal(${s.id})">Xuất một phần</button>
             <button class="link-btn danger" onclick="markExported(${s.id})">Xuất hết</button>
           </td>
         </tr>
@@ -442,6 +447,7 @@ function renderSearchResults(results) {
           <td>
             <button class="link-btn" onclick="openDetailModal(${s.location_id})">Xem vị trí</button>
             <button class="link-btn" onclick="editStockFromAnyModal(${s.id})">Sửa</button>
+            <button class="link-btn" onclick="openPartialExportModal(${s.id})">Xuất một phần</button>
           </td>
         </tr>
       `;
@@ -460,6 +466,8 @@ function clearSearch() {
 
 async function openStockModal(stockId = null, locationId = null) {
   closeMoveModal(false);
+  closePartialExportModal(false);
+
   $("stockModal").classList.remove("hidden");
   $("stockModalTitle").textContent = stockId ? "Sửa thông tin hàng" : "Thêm hàng vào vị trí";
 
@@ -562,6 +570,7 @@ async function saveStock() {
 async function openMoveModal(stockId) {
   closeStockModal();
   closeDetailModal();
+  closePartialExportModal(false);
 
   const s = State.stocks.find((x) => Number(x.id) === Number(stockId));
   if (!s) return;
@@ -668,6 +677,7 @@ async function saveRow() {
 function openDetailModal(locationId) {
   closeStockModal();
   closeMoveModal();
+  closePartialExportModal(false);
 
   const loc = getLocationById(locationId);
   if (!loc) return;
@@ -720,6 +730,7 @@ function openDetailModal(locationId) {
                   <td>
                     <button class="link-btn" onclick="editStockFromAnyModal(${s.id})">Sửa</button>
                     <button class="link-btn" onclick="openMoveModal(${s.id})">Chuyển</button>
+                    <button class="link-btn" onclick="openPartialExportModal(${s.id})">Xuất một phần</button>
                     <button class="link-btn danger" onclick="markExported(${s.id})">Xuất hết</button>
                   </td>
                 </tr>
@@ -735,6 +746,82 @@ function openDetailModal(locationId) {
 function closeDetailModal() {
   $("detailModal")?.classList.add("hidden");
   State.selectedLocationId = null;
+}
+
+/* =========================
+   PARTIAL EXPORT
+========================= */
+
+function openPartialExportModal(stockId) {
+  closeDetailModal();
+  closeStockModal();
+  closeMoveModal();
+
+  const s = State.stocks.find((x) => Number(x.id) === Number(stockId));
+  if (!s) return toast("Không tìm thấy hàng.");
+
+  const loc = getLocationById(s.location_id);
+
+  $("partialExportModal").classList.remove("hidden");
+  $("partialExportStockId").value = stockId;
+  $("partialExportQty").value = "";
+  $("partialExportNote").value = "";
+
+  $("partialExportInfo").innerHTML = `
+    <strong>${esc(s.po_no)} - ${esc(s.style_code)}</strong>
+    <p>Vị trí: ${esc(loc?.location_code || "")}</p>
+    <p>Số kiện hiện có: <b>${Number(s.carton_qty || 0)}</b></p>
+  `;
+}
+
+function closePartialExportModal(clear = true) {
+  $("partialExportModal")?.classList.add("hidden");
+
+  if (clear) {
+    if ($("partialExportStockId")) $("partialExportStockId").value = "";
+    if ($("partialExportQty")) $("partialExportQty").value = "";
+    if ($("partialExportNote")) $("partialExportNote").value = "";
+  }
+}
+
+async function confirmPartialExport() {
+  const stockId = $("partialExportStockId").value;
+  const qty = Number($("partialExportQty").value || 0);
+  const note = clean($("partialExportNote").value);
+
+  const s = State.stocks.find((x) => Number(x.id) === Number(stockId));
+  if (!s) return toast("Không tìm thấy hàng.");
+
+  const currentQty = Number(s.carton_qty || 0);
+
+  if (!qty || qty <= 0) {
+    return toast("Vui lòng nhập số kiện xuất.");
+  }
+
+  if (qty > currentQty) {
+    return toast("Số kiện xuất lớn hơn số kiện đang có.");
+  }
+
+  const ok = confirm(`Xác nhận xuất ${qty} kiện? Còn lại ${currentQty - qty} kiện.`);
+  if (!ok) return;
+
+  try {
+    showLoading(true);
+
+    await apiPost(`/api/stocks/${stockId}/partial-export`, {
+      carton_qty: qty,
+      note,
+    });
+
+    closeAllModals();
+    toast("Đã xuất một phần.");
+    await reloadStocksAndLocations();
+  } catch (err) {
+    console.error(err);
+    toast("Xuất một phần không thành công.");
+  } finally {
+    showLoading(false);
+  }
 }
 
 /* =========================
@@ -918,6 +1005,7 @@ function closeAllModals() {
   $("stockModal")?.classList.add("hidden");
   $("moveModal")?.classList.add("hidden");
   $("rowModal")?.classList.add("hidden");
+  $("partialExportModal")?.classList.add("hidden");
 
   State.selectedLocationId = null;
 }
@@ -998,5 +1086,6 @@ function showLoading(show) {
 window.openStockModal = openStockModal;
 window.openMoveModal = openMoveModal;
 window.openDetailModal = openDetailModal;
+window.openPartialExportModal = openPartialExportModal;
 window.markExported = markExported;
 window.editStockFromAnyModal = editStockFromAnyModal;
