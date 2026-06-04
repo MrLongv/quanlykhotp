@@ -12,14 +12,35 @@ const State = {
   locations: [],
   stocks: [],
   selectedLocationId: null,
+  token: localStorage.getItem("warehouse_token") || "",
+  user: JSON.parse(localStorage.getItem("warehouse_user") || "null"),
 };
 
 /* =========================
    API HELPER
 ========================= */
 
+function authHeaders() {
+  const headers = { "Content-Type": "application/json" };
+
+  if (State.token) {
+    headers.Authorization = `Bearer ${State.token}`;
+  }
+
+  return headers;
+}
+
 async function apiGet(url) {
-  const res = await fetch(API_BASE + url);
+  const res = await fetch(API_BASE + url, {
+    method: "GET",
+    headers: authHeaders(),
+  });
+
+  if (res.status === 401) {
+    forceLogout("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+    throw new Error("Unauthorized");
+  }
+
   if (!res.ok) throw new Error("API GET lỗi: " + url);
   return await res.json();
 }
@@ -27,20 +48,48 @@ async function apiGet(url) {
 async function apiPost(url, data) {
   const res = await fetch(API_BASE + url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(),
     body: JSON.stringify(data || {}),
   });
-  if (!res.ok) throw new Error("API POST lỗi: " + url);
+
+  if (res.status === 401) {
+    forceLogout("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+    throw new Error("Unauthorized");
+  }
+
+  if (!res.ok) {
+    let msg = "API POST lỗi: " + url;
+    try {
+      const data = await res.json();
+      msg = data.error || msg;
+    } catch {}
+    throw new Error(msg);
+  }
+
   return await res.json();
 }
 
 async function apiPut(url, data) {
   const res = await fetch(API_BASE + url, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(),
     body: JSON.stringify(data || {}),
   });
-  if (!res.ok) throw new Error("API PUT lỗi: " + url);
+
+  if (res.status === 401) {
+    forceLogout("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+    throw new Error("Unauthorized");
+  }
+
+  if (!res.ok) {
+    let msg = "API PUT lỗi: " + url;
+    try {
+      const data = await res.json();
+      msg = data.error || msg;
+    } catch {}
+    throw new Error(msg);
+  }
+
   return await res.json();
 }
 
@@ -50,7 +99,20 @@ async function apiPut(url, data) {
 
 document.addEventListener("DOMContentLoaded", async () => {
   bindEvents();
-  await loadInitialData();
+
+  if (!State.token) {
+    showLogin();
+    return;
+  }
+
+  try {
+    await loadMe();
+    showApp();
+    await loadInitialData();
+  } catch (err) {
+    console.error(err);
+    forceLogout("Vui lòng đăng nhập lại.");
+  }
 });
 
 async function loadInitialData() {
@@ -62,12 +124,123 @@ async function loadInitialData() {
     State.stocks = await apiGet("/api/stocks");
 
     renderAll();
+    applyPermissionUI();
   } catch (err) {
     console.error(err);
-    toast("Không tải được dữ liệu. Kiểm tra Worker/API.");
+    toast(err.message || "Không tải được dữ liệu. Kiểm tra Worker/API.");
   } finally {
     showLoading(false);
   }
+}
+
+/* =========================
+   AUTH
+========================= */
+
+async function login() {
+  const username = clean($("loginUsername").value);
+  const password = clean($("loginPassword").value);
+
+  if (!username || !password) {
+    toast("Vui lòng nhập tài khoản và mật khẩu.");
+    return;
+  }
+
+  try {
+    showLoading(true);
+
+    const data = await fetch(API_BASE + "/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    }).then(async (res) => {
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Đăng nhập không thành công.");
+      return json;
+    });
+
+    State.token = data.token;
+    State.user = data.user;
+
+    localStorage.setItem("warehouse_token", State.token);
+    localStorage.setItem("warehouse_user", JSON.stringify(State.user));
+
+    showApp();
+    renderUser();
+    await loadInitialData();
+
+    toast("Đăng nhập thành công.");
+  } catch (err) {
+    console.error(err);
+    toast(err.message || "Đăng nhập không thành công.");
+  } finally {
+    showLoading(false);
+  }
+}
+
+async function logout() {
+  try {
+    if (State.token) {
+      await apiPost("/api/logout", {});
+    }
+  } catch (err) {
+    console.warn(err);
+  }
+
+  forceLogout("Đã đăng xuất.");
+}
+
+function forceLogout(message = "") {
+  State.token = "";
+  State.user = null;
+
+  localStorage.removeItem("warehouse_token");
+  localStorage.removeItem("warehouse_user");
+
+  closeAllModals();
+  showLogin();
+
+  if (message) toast(message);
+}
+
+async function loadMe() {
+  const data = await apiGet("/api/me");
+  State.user = data.user;
+  localStorage.setItem("warehouse_user", JSON.stringify(State.user));
+  renderUser();
+}
+
+function showLogin() {
+  $("loginScreen")?.classList.remove("hidden");
+  $("appShell")?.classList.add("hidden");
+}
+
+function showApp() {
+  $("loginScreen")?.classList.add("hidden");
+  $("appShell")?.classList.remove("hidden");
+  renderUser();
+}
+
+function renderUser() {
+  $("currentUserName") && ($("currentUserName").textContent = State.user?.full_name || "Người dùng");
+  $("currentUserRole") && ($("currentUserRole").textContent = State.user?.role || "");
+}
+
+function isAdmin() {
+  return State.user?.role === "admin";
+}
+
+function canEdit() {
+  return State.user?.role === "admin" || State.user?.role === "staff";
+}
+
+function applyPermissionUI() {
+  const editable = canEdit();
+  const admin = isAdmin();
+
+  $("btnAddRow") && ($("btnAddRow").style.display = admin ? "" : "none");
+  $("btnOpenAddStock") && ($("btnOpenAddStock").style.display = editable ? "" : "none");
+  $("btnOpenLogs") && ($("btnOpenLogs").style.display = admin ? "" : "none");
 }
 
 /* =========================
@@ -75,8 +248,22 @@ async function loadInitialData() {
 ========================= */
 
 function bindEvents() {
+  $("btnLogin")?.addEventListener("click", login);
+  $("loginPassword")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") login();
+  });
+  $("loginUsername")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") login();
+  });
+
+  $("btnLogout")?.addEventListener("click", logout);
   $("btnRefresh")?.addEventListener("click", loadInitialData);
   $("btnExportExcel")?.addEventListener("click", exportExcelLikeCsv);
+
+  $("btnOpenLogs")?.addEventListener("click", openLogsModal);
+  $("btnCloseLogsModal")?.addEventListener("click", closeLogsModal);
+  $("btnCloseLogs")?.addEventListener("click", closeLogsModal);
+  $("btnReloadLogs")?.addEventListener("click", loadLogs);
 
   $("btnSearch")?.addEventListener("click", handleSearch);
 
@@ -88,21 +275,15 @@ function bindEvents() {
   });
 
   $("globalSearch")?.addEventListener("search", () => {
-    if (clean($("globalSearch").value)) {
-      handleSearch();
-    }
+    if (clean($("globalSearch").value)) handleSearch();
   });
 
   $("globalSearch")?.addEventListener("change", () => {
-    if (clean($("globalSearch").value)) {
-      handleSearch();
-    }
+    if (clean($("globalSearch").value)) handleSearch();
   });
 
   $("globalSearch")?.addEventListener("input", () => {
-    if (!clean($("globalSearch").value)) {
-      clearSearch();
-    }
+    if (!clean($("globalSearch").value)) clearSearch();
   });
 
   $("btnClearSearch")?.addEventListener("click", clearSearch);
@@ -156,6 +337,8 @@ function bindModalEvents() {
   $("btnCloseDetail")?.addEventListener("click", closeDetailModal);
 
   $("btnAddStockFromDetail")?.addEventListener("click", () => {
+    if (!canEdit()) return toast("Bạn không có quyền thêm hàng.");
+
     const locationId = State.selectedLocationId;
     closeDetailModal();
 
@@ -188,6 +371,7 @@ async function selectArea(areaId, areaCode, btn) {
     State.locations = await apiGet(`/api/locations?areaId=${areaId}`);
 
     renderAll();
+    applyPermissionUI();
   } catch (err) {
     console.error(err);
     toast("Không tải được khu vực.");
@@ -331,7 +515,11 @@ function renderShelfBox(loc) {
 
       <div class="shelf-actions">
         <button onclick="openDetailModal(${loc.id})">Chi tiết</button>
-        <button onclick="openStockModal(null, ${loc.id})">+ Thêm</button>
+        ${
+          canEdit()
+            ? `<button onclick="openStockModal(null, ${loc.id})">+ Thêm</button>`
+            : `<button disabled>Chỉ xem</button>`
+        }
       </div>
     </div>
   `;
@@ -361,6 +549,15 @@ function renderTable() {
           ? `Kệ ${loc?.level_no}`
           : `Ô ${String(loc?.level_no).padStart(2, "0")}`;
 
+      const actions = canEdit()
+        ? `
+          <button class="link-btn" onclick="editStockFromAnyModal(${s.id})">Sửa</button>
+          <button class="link-btn" onclick="openMoveModal(${s.id})">Chuyển</button>
+          <button class="link-btn" onclick="openPartialExportModal(${s.id})">Xuất một phần</button>
+          <button class="link-btn danger" onclick="markExported(${s.id})">Xuất hết</button>
+        `
+        : `<span class="muted-text">Chỉ xem</span>`;
+
       return `
         <tr>
           <td>${esc(loc?.location_code || "")}</td>
@@ -371,12 +568,7 @@ function renderTable() {
           <td>${esc(s.po_no)}</td>
           <td>${Number(s.carton_qty || 0)}</td>
           <td>${esc(s.note || "")}</td>
-          <td>
-            <button class="link-btn" onclick="editStockFromAnyModal(${s.id})">Sửa</button>
-            <button class="link-btn" onclick="openMoveModal(${s.id})">Chuyển</button>
-            <button class="link-btn" onclick="openPartialExportModal(${s.id})">Xuất một phần</button>
-            <button class="link-btn danger" onclick="markExported(${s.id})">Xuất hết</button>
-          </td>
+          <td>${actions}</td>
         </tr>
       `;
     })
@@ -435,6 +627,14 @@ function renderSearchResults(results) {
     .map((s) => {
       const loc = getLocationById(s.location_id);
 
+      const actions = canEdit()
+        ? `
+          <button class="link-btn" onclick="openDetailModal(${s.location_id})">Xem vị trí</button>
+          <button class="link-btn" onclick="editStockFromAnyModal(${s.id})">Sửa</button>
+          <button class="link-btn" onclick="openPartialExportModal(${s.id})">Xuất một phần</button>
+        `
+        : `<button class="link-btn" onclick="openDetailModal(${s.location_id})">Xem vị trí</button>`;
+
       return `
         <tr>
           <td><strong>${esc(loc?.location_code || "")}</strong></td>
@@ -444,11 +644,7 @@ function renderSearchResults(results) {
           <td>${esc(s.size || "")}</td>
           <td>${Number(s.carton_qty || 0)}</td>
           <td>${esc(s.customer || "")}</td>
-          <td>
-            <button class="link-btn" onclick="openDetailModal(${s.location_id})">Xem vị trí</button>
-            <button class="link-btn" onclick="editStockFromAnyModal(${s.id})">Sửa</button>
-            <button class="link-btn" onclick="openPartialExportModal(${s.id})">Xuất một phần</button>
-          </td>
+          <td>${actions}</td>
         </tr>
       `;
     })
@@ -465,6 +661,8 @@ function clearSearch() {
 ========================= */
 
 async function openStockModal(stockId = null, locationId = null) {
+  if (!canEdit()) return toast("Bạn không có quyền thêm/sửa hàng.");
+
   closeMoveModal(false);
   closePartialExportModal(false);
 
@@ -524,6 +722,8 @@ function resetStockForm() {
 }
 
 async function saveStock() {
+  if (!canEdit()) return toast("Bạn không có quyền lưu hàng.");
+
   const id = $("stockId").value;
 
   const payload = {
@@ -557,7 +757,7 @@ async function saveStock() {
     await reloadStocksAndLocations();
   } catch (err) {
     console.error(err);
-    toast("Lưu không thành công.");
+    toast(err.message || "Lưu không thành công.");
   } finally {
     showLoading(false);
   }
@@ -568,6 +768,8 @@ async function saveStock() {
 ========================= */
 
 async function openMoveModal(stockId) {
+  if (!canEdit()) return toast("Bạn không có quyền chuyển vị trí.");
+
   closeStockModal();
   closeDetailModal();
   closePartialExportModal(false);
@@ -601,6 +803,8 @@ function closeMoveModal(clear = true) {
 }
 
 async function confirmMove() {
+  if (!canEdit()) return toast("Bạn không có quyền chuyển vị trí.");
+
   const stockId = $("moveStockId").value;
   const newLocationId = Number($("moveLocation").value);
   const reason = clean($("moveReason").value);
@@ -620,7 +824,7 @@ async function confirmMove() {
     await reloadStocksAndLocations();
   } catch (err) {
     console.error(err);
-    toast("Chuyển vị trí không thành công.");
+    toast(err.message || "Chuyển vị trí không thành công.");
   } finally {
     showLoading(false);
   }
@@ -631,6 +835,8 @@ async function confirmMove() {
 ========================= */
 
 function openRowModal() {
+  if (!isAdmin()) return toast("Chỉ admin được thêm dãy.");
+
   closeAllModals();
   $("rowModal").classList.remove("hidden");
   $("rowArea").value = State.currentAreaId;
@@ -642,6 +848,8 @@ function closeRowModal() {
 }
 
 async function saveRow() {
+  if (!isAdmin()) return toast("Chỉ admin được thêm dãy.");
+
   const areaId = Number($("rowArea").value);
   const rowNo = Number($("newRowNo").value);
 
@@ -664,7 +872,7 @@ async function saveRow() {
     }
   } catch (err) {
     console.error(err);
-    toast("Không thêm được dãy. Có thể dãy đã tồn tại.");
+    toast(err.message || "Không thêm được dãy. Có thể dãy đã tồn tại.");
   } finally {
     showLoading(false);
   }
@@ -717,8 +925,17 @@ function openDetailModal(locationId) {
         </thead>
         <tbody>
           ${stocks
-            .map(
-              (s) => `
+            .map((s) => {
+              const actions = canEdit()
+                ? `
+                  <button class="link-btn" onclick="editStockFromAnyModal(${s.id})">Sửa</button>
+                  <button class="link-btn" onclick="openMoveModal(${s.id})">Chuyển</button>
+                  <button class="link-btn" onclick="openPartialExportModal(${s.id})">Xuất một phần</button>
+                  <button class="link-btn danger" onclick="markExported(${s.id})">Xuất hết</button>
+                `
+                : `<span class="muted-text">Chỉ xem</span>`;
+
+              return `
                 <tr>
                   <td>${esc(s.style_code)}</td>
                   <td>${esc(s.po_no)}</td>
@@ -727,15 +944,10 @@ function openDetailModal(locationId) {
                   <td>${Number(s.carton_qty || 0)}</td>
                   <td>${esc(s.customer || "")}</td>
                   <td>${esc(s.note || "")}</td>
-                  <td>
-                    <button class="link-btn" onclick="editStockFromAnyModal(${s.id})">Sửa</button>
-                    <button class="link-btn" onclick="openMoveModal(${s.id})">Chuyển</button>
-                    <button class="link-btn" onclick="openPartialExportModal(${s.id})">Xuất một phần</button>
-                    <button class="link-btn danger" onclick="markExported(${s.id})">Xuất hết</button>
-                  </td>
+                  <td>${actions}</td>
                 </tr>
-              `
-            )
+              `;
+            })
             .join("")}
         </tbody>
       </table>
@@ -753,6 +965,8 @@ function closeDetailModal() {
 ========================= */
 
 function openPartialExportModal(stockId) {
+  if (!canEdit()) return toast("Bạn không có quyền xuất hàng.");
+
   closeDetailModal();
   closeStockModal();
   closeMoveModal();
@@ -785,6 +999,8 @@ function closePartialExportModal(clear = true) {
 }
 
 async function confirmPartialExport() {
+  if (!canEdit()) return toast("Bạn không có quyền xuất hàng.");
+
   const stockId = $("partialExportStockId").value;
   const qty = Number($("partialExportQty").value || 0);
   const note = clean($("partialExportNote").value);
@@ -794,13 +1010,8 @@ async function confirmPartialExport() {
 
   const currentQty = Number(s.carton_qty || 0);
 
-  if (!qty || qty <= 0) {
-    return toast("Vui lòng nhập số kiện xuất.");
-  }
-
-  if (qty > currentQty) {
-    return toast("Số kiện xuất lớn hơn số kiện đang có.");
-  }
+  if (!qty || qty <= 0) return toast("Vui lòng nhập số kiện xuất.");
+  if (qty > currentQty) return toast("Số kiện xuất lớn hơn số kiện đang có.");
 
   const ok = confirm(`Xác nhận xuất ${qty} kiện? Còn lại ${currentQty - qty} kiện.`);
   if (!ok) return;
@@ -818,7 +1029,7 @@ async function confirmPartialExport() {
     await reloadStocksAndLocations();
   } catch (err) {
     console.error(err);
-    toast("Xuất một phần không thành công.");
+    toast(err.message || "Xuất một phần không thành công.");
   } finally {
     showLoading(false);
   }
@@ -829,6 +1040,8 @@ async function confirmPartialExport() {
 ========================= */
 
 async function markExported(stockId) {
+  if (!canEdit()) return toast("Bạn không có quyền xuất hàng.");
+
   const ok = confirm("Đánh dấu lô hàng này đã xuất hết khỏi kho?");
   if (!ok) return;
 
@@ -842,7 +1055,66 @@ async function markExported(stockId) {
     await reloadStocksAndLocations();
   } catch (err) {
     console.error(err);
-    toast("Không cập nhật được trạng thái xuất.");
+    toast(err.message || "Không cập nhật được trạng thái xuất.");
+  } finally {
+    showLoading(false);
+  }
+}
+
+/* =========================
+   LOGS
+========================= */
+
+async function openLogsModal() {
+  if (!isAdmin()) return toast("Chỉ admin được xem nhật ký.");
+
+  $("logsModal")?.classList.remove("hidden");
+  await loadLogs();
+}
+
+function closeLogsModal() {
+  $("logsModal")?.classList.add("hidden");
+}
+
+async function loadLogs() {
+  if (!isAdmin()) return;
+
+  const tbody = $("logsTableBody");
+  if (!tbody) return;
+
+  try {
+    showLoading(true);
+
+    const logs = await apiGet("/api/logs?limit=200");
+
+    if (!logs.length) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="8" class="text-center">Chưa có nhật ký thao tác.</td>
+        </tr>
+      `;
+      return;
+    }
+
+    tbody.innerHTML = logs
+      .map(
+        (l) => `
+          <tr>
+            <td>${esc(formatDateTime(l.created_at))}</td>
+            <td>${esc(l.user_name || "")}</td>
+            <td>${esc(l.action || "")}</td>
+            <td>${esc(l.style_code || "")}</td>
+            <td>${esc(l.po_no || "")}</td>
+            <td>${esc(l.content || "")}</td>
+            <td>${l.old_carton_qty ?? ""}</td>
+            <td>${l.new_carton_qty ?? ""}</td>
+          </tr>
+        `
+      )
+      .join("");
+  } catch (err) {
+    console.error(err);
+    toast(err.message || "Không tải được nhật ký.");
   } finally {
     showLoading(false);
   }
@@ -930,6 +1202,7 @@ async function reloadStocksAndLocations() {
   State.locations = await apiGet(`/api/locations?areaId=${State.currentAreaId}`);
   State.stocks = await apiGet("/api/stocks");
   renderAll();
+  applyPermissionUI();
 }
 
 /* =========================
@@ -1006,11 +1279,14 @@ function closeAllModals() {
   $("moveModal")?.classList.add("hidden");
   $("rowModal")?.classList.add("hidden");
   $("partialExportModal")?.classList.add("hidden");
+  $("logsModal")?.classList.add("hidden");
 
   State.selectedLocationId = null;
 }
 
 function editStockFromAnyModal(stockId) {
+  if (!canEdit()) return toast("Bạn không có quyền sửa hàng.");
+
   closeAllModals();
 
   setTimeout(() => {
@@ -1065,9 +1341,16 @@ function esc(str) {
     .replaceAll("'", "&#039;");
 }
 
+function formatDateTime(v) {
+  if (!v) return "";
+  return String(v).replace("T", " ").replace(".000Z", "");
+}
+
 function toast(message) {
   const box = $("toast");
   const text = $("toastText");
+
+  if (!box || !text) return alert(message);
 
   text.textContent = message;
   box.classList.remove("hidden");
