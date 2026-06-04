@@ -78,10 +78,36 @@ function bindEvents() {
   $("btnRefresh")?.addEventListener("click", loadInitialData);
   $("btnExportExcel")?.addEventListener("click", exportExcelLikeCsv);
 
+  // Tìm kiếm desktop + mobile
   $("btnSearch")?.addEventListener("click", handleSearch);
+
   $("globalSearch")?.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") handleSearch();
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSearch();
+    }
   });
+
+  // Mobile: bấm nút Search/Go trên bàn phím
+  $("globalSearch")?.addEventListener("search", () => {
+    if (clean($("globalSearch").value)) {
+      handleSearch();
+    }
+  });
+
+  $("globalSearch")?.addEventListener("change", () => {
+    if (clean($("globalSearch").value)) {
+      handleSearch();
+    }
+  });
+
+  // Nếu xóa trắng ô tìm thì đóng kết quả
+  $("globalSearch")?.addEventListener("input", () => {
+    if (!clean($("globalSearch").value)) {
+      clearSearch();
+    }
+  });
+
   $("btnClearSearch")?.addEventListener("click", clearSearch);
   $("btnCloseSearchResult")?.addEventListener("click", clearSearch);
 
@@ -90,10 +116,12 @@ function bindEvents() {
 
   $("btnAddRow")?.addEventListener("click", openRowModal);
   $("btnOpenAddStock")?.addEventListener("click", () => openStockModal());
+
   $("btnShowEmpty")?.addEventListener("click", () => {
     State.filterMode = "empty";
     renderLocations();
   });
+
   $("btnShowInStock")?.addEventListener("click", () => {
     State.filterMode = "used";
     renderLocations();
@@ -389,7 +417,7 @@ function renderTable() {
           <td>${Number(s.carton_qty || 0)}</td>
           <td>${esc(s.note || "")}</td>
           <td>
-            <button class="link-btn" onclick="openStockModal(${s.id})">Sửa</button>
+            <button class="link-btn" onclick="editStockFromDetail(${s.id})">Sửa</button>
             <button class="link-btn" onclick="openMoveModal(${s.id})">Chuyển</button>
             <button class="link-btn danger" onclick="markExported(${s.id})">Xuất hết</button>
           </td>
@@ -967,9 +995,16 @@ function toast(message) {
 function showLoading(show) {
   $("loadingOverlay")?.classList.toggle("hidden", !show);
 }
+function editStockFromDetail(stockId) {
+  closeDetailModal();
 
+  setTimeout(() => {
+    openStockModal(stockId);
+  }, 80);
+}
 /* Cho phép gọi từ HTML onclick */
 window.openStockModal = openStockModal;
 window.openMoveModal = openMoveModal;
 window.openDetailModal = openDetailModal;
 window.markExported = markExported;
+window.editStockFromDetail = editStockFromDetail;
