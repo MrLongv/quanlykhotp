@@ -8,7 +8,37 @@
 </head>
 
 <body>
-  <div class="app-shell">
+
+  <!-- LOGIN SCREEN -->
+  <div class="login-screen" id="loginScreen">
+    <div class="login-card">
+      <div class="app-logo login-logo">
+        <span>WH</span>
+      </div>
+
+      <h2>Đăng nhập kho thành phẩm</h2>
+      <p>Nhập tài khoản được cấp để sử dụng hệ thống</p>
+
+      <div class="form-group">
+        <label>Tài khoản</label>
+        <input type="text" id="loginUsername" placeholder="VD: kho01" autocomplete="username" />
+      </div>
+
+      <div class="form-group">
+        <label>Mật khẩu</label>
+        <input type="password" id="loginPassword" placeholder="Nhập mật khẩu" autocomplete="current-password" />
+      </div>
+
+      <button class="btn primary login-btn" id="btnLogin">Đăng nhập</button>
+
+      <div class="login-note">
+        Tài khoản mẫu: <b>admin</b> / <b>123456</b>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <div class="app-shell hidden" id="appShell">
 
     <header class="app-header">
       <div class="header-left">
@@ -20,8 +50,15 @@
       </div>
 
       <div class="header-actions">
+        <div class="user-box">
+          <strong id="currentUserName">Người dùng</strong>
+          <span id="currentUserRole">role</span>
+        </div>
+
+        <button class="btn ghost" id="btnOpenLogs">Nhật ký</button>
         <button class="btn ghost" id="btnRefresh">Làm mới</button>
         <button class="btn primary" id="btnExportExcel">Xuất Excel</button>
+        <button class="btn dark" id="btnLogout">Đăng xuất</button>
       </div>
     </header>
 
@@ -251,7 +288,6 @@
 
       <div class="modal-body">
         <input type="hidden" id="moveStockId" />
-
         <div class="move-info" id="moveStockInfo"></div>
 
         <div class="form-group">
@@ -347,7 +383,6 @@
 
       <div class="modal-body">
         <input type="hidden" id="partialExportStockId" />
-
         <div class="info-box" id="partialExportInfo"></div>
 
         <div class="form-group">
@@ -373,6 +408,48 @@
       <div class="modal-footer">
         <button class="btn ghost" id="btnCancelPartialExport">Hủy</button>
         <button class="btn primary" id="btnConfirmPartialExport">Xác nhận xuất</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: LOGS -->
+  <div class="modal-backdrop hidden" id="logsModal">
+    <div class="modal large">
+      <div class="modal-header">
+        <div>
+          <h3>Nhật ký thao tác</h3>
+          <p>Xem ai đã thêm, sửa, chuyển, xuất hàng</p>
+        </div>
+        <button class="icon-btn" id="btnCloseLogsModal">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Thời gian</th>
+                <th>Người thao tác</th>
+                <th>Hành động</th>
+                <th>Mã hàng</th>
+                <th>PO</th>
+                <th>Nội dung</th>
+                <th>SL cũ</th>
+                <th>SL mới</th>
+              </tr>
+            </thead>
+            <tbody id="logsTableBody">
+              <tr>
+                <td colspan="8" class="text-center">Chưa tải nhật ký.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn ghost" id="btnCloseLogs">Đóng</button>
+        <button class="btn primary" id="btnReloadLogs">Tải lại nhật ký</button>
       </div>
     </div>
   </div>
