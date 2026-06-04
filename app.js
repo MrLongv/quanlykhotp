@@ -236,7 +236,11 @@ function renderLocations() {
             <small>${rowLocations.length} vị trí</small>
           </div>
 
-          <div class="shelf-map ${State.currentAreaId === 1 ? "three-level" : "one-level"}">
+          <div class="shelf-map ${
+  State.currentAreaId === 1
+    ? "three-level"
+    : "twenty-slot-grid"
+}">
             ${rowLocations.map(renderShelfBox).join("")}
           </div>
         </div>
