@@ -78,7 +78,6 @@ function bindEvents() {
   $("btnRefresh")?.addEventListener("click", loadInitialData);
   $("btnExportExcel")?.addEventListener("click", exportExcelLikeCsv);
 
-  // Tìm kiếm desktop + mobile
   $("btnSearch")?.addEventListener("click", handleSearch);
 
   $("globalSearch")?.addEventListener("keydown", (e) => {
@@ -88,7 +87,6 @@ function bindEvents() {
     }
   });
 
-  // Mobile: bấm nút Search/Go trên bàn phím
   $("globalSearch")?.addEventListener("search", () => {
     if (clean($("globalSearch").value)) {
       handleSearch();
@@ -101,7 +99,6 @@ function bindEvents() {
     }
   });
 
-  // Nếu xóa trắng ô tìm thì đóng kết quả
   $("globalSearch")?.addEventListener("input", () => {
     if (!clean($("globalSearch").value)) {
       clearSearch();
@@ -157,10 +154,14 @@ function bindModalEvents() {
 
   $("btnCloseDetailModal")?.addEventListener("click", closeDetailModal);
   $("btnCloseDetail")?.addEventListener("click", closeDetailModal);
+
   $("btnAddStockFromDetail")?.addEventListener("click", () => {
     const locationId = State.selectedLocationId;
     closeDetailModal();
-    openStockModal(null, locationId);
+
+    setTimeout(() => {
+      openStockModal(null, locationId);
+    }, 120);
   });
 }
 
@@ -175,7 +176,6 @@ async function selectArea(areaId, areaCode, btn) {
     State.currentAreaId = areaId;
     State.currentAreaCode = areaCode;
     State.filterMode = "all";
-
     State.currentAreaName = areaId === 1 ? "Kho thành phẩm" : "Lầu 6";
 
     document.querySelectorAll(".area-item").forEach((x) => x.classList.remove("active"));
@@ -223,7 +223,10 @@ function renderSummary() {
   $("totalLocations").textContent = State.locations.length;
   $("usedLocations").textContent = usedLocationIds.size;
   $("emptyLocations").textContent = Math.max(State.locations.length - usedLocationIds.size, 0);
-  $("totalCartons").textContent = activeStocks.reduce((sum, s) => sum + Number(s.carton_qty || 0), 0);
+  $("totalCartons").textContent = activeStocks.reduce(
+    (sum, s) => sum + Number(s.carton_qty || 0),
+    0
+  );
 }
 
 function renderLocations() {
@@ -265,10 +268,8 @@ function renderLocations() {
           </div>
 
           <div class="shelf-map ${
-  State.currentAreaId === 1
-    ? "three-level"
-    : "twenty-slot-grid"
-}">
+            State.currentAreaId === 1 ? "three-level" : "twenty-slot-grid"
+          }">
             ${rowLocations.map(renderShelfBox).join("")}
           </div>
         </div>
@@ -276,6 +277,7 @@ function renderLocations() {
     })
     .join("");
 }
+
 function renderShelfBox(loc) {
   const stocks = getStocksByLocation(loc.id);
   const totalCarton = stocks.reduce((sum, s) => sum + Number(s.carton_qty || 0), 0);
@@ -284,14 +286,12 @@ function renderShelfBox(loc) {
   const statusClass = isEmpty ? "empty" : totalCarton >= 50 ? "full" : "used";
 
   const shelfName =
-  State.currentAreaId === 1
-    ? `KỆ ${loc.level_no}`
-    : `Ô ${String(loc.level_no).padStart(2, "0")}`;
+    State.currentAreaId === 1
+      ? `KỆ ${loc.level_no}`
+      : `Ô ${String(loc.level_no).padStart(2, "0")}`;
 
   const stockHtml = isEmpty
-    ? `
-      <div class="shelf-empty">TRỐNG</div>
-    `
+    ? `<div class="shelf-empty">TRỐNG</div>`
     : `
       <div class="shelf-stock-list">
         ${stocks
@@ -332,54 +332,6 @@ function renderShelfBox(loc) {
     </div>
   `;
 }
-function renderLocationCard(loc) {
-  const stocks = getStocksByLocation(loc.id);
-  const totalCarton = stocks.reduce((sum, s) => sum + Number(s.carton_qty || 0), 0);
-
-  const isEmpty = stocks.length === 0;
-  const statusClass = isEmpty ? "empty" : totalCarton >= 50 ? "full" : "used";
-
-  const title =
-    State.currentAreaId === 1
-      ? `Dãy ${loc.row_no} - Kệ ${loc.level_no}`
-      : `Dãy ${loc.row_no}`;
-
-  const stockHtml = isEmpty
-    ? `<div class="empty-text">Trống</div>`
-    : stocks
-        .slice(0, 2)
-        .map(
-          (s) => `
-            <div class="stock-line">
-              <strong>${esc(s.po_no)}</strong>
-              <span>${esc(s.style_code)} · ${Number(s.carton_qty || 0)} kiện</span>
-            </div>
-          `
-        )
-        .join("");
-
-  const moreHtml =
-    stocks.length > 2 ? `<div class="more-line">+${stocks.length - 2} mã khác</div>` : "";
-
-  return `
-    <div class="location-card ${statusClass}">
-      <div class="location-head">
-        <strong>${esc(loc.location_code)}</strong>
-        <span>${title}</span>
-      </div>
-
-      <div class="location-body">
-        ${stockHtml}
-        ${moreHtml}
-      </div>
-
-      <div class="location-footer">
-        <button onclick="openDetailModal(${loc.id})">Chi tiết</button>
-        <button onclick="openStockModal(null, ${loc.id})">+ Thêm</button>
-      </div>
-    </div>
-  `;
-}
 
 function renderTable() {
   const tbody = $("stockTableBody");
@@ -400,24 +352,23 @@ function renderTable() {
     .map((s) => {
       const loc = getLocationById(s.location_id);
 
+      const levelText =
+        Number(loc?.area_id) === 1
+          ? `Kệ ${loc?.level_no}`
+          : `Ô ${String(loc?.level_no).padStart(2, "0")}`;
+
       return `
         <tr>
           <td>${esc(loc?.location_code || "")}</td>
           <td>${esc(getAreaName(loc?.area_id))}</td>
           <td>${esc(loc?.row_no || "")}</td>
-          <td>
- ${
-   Number(loc?.area_id) === 1
-     ? `Kệ ${loc?.level_no}`
-     : `Ô ${String(loc?.level_no).padStart(2,"0")}`
- }
-</td>
+          <td>${esc(levelText)}</td>
           <td>${esc(s.style_code)}</td>
           <td>${esc(s.po_no)}</td>
           <td>${Number(s.carton_qty || 0)}</td>
           <td>${esc(s.note || "")}</td>
           <td>
-            <button class="link-btn" onclick="editStockFromDetail(${s.id})">Sửa</button>
+            <button class="link-btn" onclick="editStockFromAnyModal(${s.id})">Sửa</button>
             <button class="link-btn" onclick="openMoveModal(${s.id})">Chuyển</button>
             <button class="link-btn danger" onclick="markExported(${s.id})">Xuất hết</button>
           </td>
@@ -441,6 +392,7 @@ function handleSearch() {
 
   const results = State.stocks.filter((s) => {
     const loc = getLocationById(s.location_id);
+
     const text = [
       s.style_code,
       s.po_no,
@@ -489,7 +441,7 @@ function renderSearchResults(results) {
           <td>${esc(s.customer || "")}</td>
           <td>
             <button class="link-btn" onclick="openDetailModal(${s.location_id})">Xem vị trí</button>
-            <button class="link-btn" onclick="openStockModal(${s.id})">Sửa</button>
+            <button class="link-btn" onclick="editStockFromAnyModal(${s.id})">Sửa</button>
           </td>
         </tr>
       `;
@@ -507,6 +459,7 @@ function clearSearch() {
 ========================= */
 
 async function openStockModal(stockId = null, locationId = null) {
+  closeMoveModal(false);
   $("stockModal").classList.remove("hidden");
   $("stockModalTitle").textContent = stockId ? "Sửa thông tin hàng" : "Thêm hàng vào vị trí";
 
@@ -546,7 +499,7 @@ async function openStockModal(stockId = null, locationId = null) {
 }
 
 function closeStockModal() {
-  $("stockModal").classList.add("hidden");
+  $("stockModal")?.classList.add("hidden");
 }
 
 function resetStockForm() {
@@ -592,7 +545,7 @@ async function saveStock() {
       toast("Đã thêm hàng vào vị trí.");
     }
 
-    closeStockModal();
+    closeAllModals();
     await reloadStocksAndLocations();
   } catch (err) {
     console.error(err);
@@ -607,6 +560,9 @@ async function saveStock() {
 ========================= */
 
 async function openMoveModal(stockId) {
+  closeStockModal();
+  closeDetailModal();
+
   const s = State.stocks.find((x) => Number(x.id) === Number(stockId));
   if (!s) return;
 
@@ -626,10 +582,13 @@ async function openMoveModal(stockId) {
   await loadAllLocationsForMove();
 }
 
-function closeMoveModal() {
-  $("moveModal").classList.add("hidden");
-  $("moveStockId").value = "";
-  $("moveReason").value = "";
+function closeMoveModal(clear = true) {
+  $("moveModal")?.classList.add("hidden");
+
+  if (clear) {
+    if ($("moveStockId")) $("moveStockId").value = "";
+    if ($("moveReason")) $("moveReason").value = "";
+  }
 }
 
 async function confirmMove() {
@@ -647,7 +606,7 @@ async function confirmMove() {
       reason,
     });
 
-    closeMoveModal();
+    closeAllModals();
     toast("Đã chuyển vị trí.");
     await reloadStocksAndLocations();
   } catch (err) {
@@ -663,13 +622,14 @@ async function confirmMove() {
 ========================= */
 
 function openRowModal() {
+  closeAllModals();
   $("rowModal").classList.remove("hidden");
   $("rowArea").value = State.currentAreaId;
   $("newRowNo").value = "";
 }
 
 function closeRowModal() {
-  $("rowModal").classList.add("hidden");
+  $("rowModal")?.classList.add("hidden");
 }
 
 async function saveRow() {
@@ -687,7 +647,7 @@ async function saveRow() {
       row_no: rowNo,
     });
 
-    closeRowModal();
+    closeAllModals();
     toast("Đã thêm dãy mới.");
 
     if (areaId === State.currentAreaId) {
@@ -706,6 +666,9 @@ async function saveRow() {
 ========================= */
 
 function openDetailModal(locationId) {
+  closeStockModal();
+  closeMoveModal();
+
   const loc = getLocationById(locationId);
   if (!loc) return;
 
@@ -716,9 +679,9 @@ function openDetailModal(locationId) {
   $("detailModal").classList.remove("hidden");
   $("detailTitle").textContent = loc.location_code;
   $("detailSubTitle").textContent =
-  Number(loc.area_id) === 1
-    ? `Dãy ${loc.row_no} - Kệ ${loc.level_no}`
-    : `Lầu 6 - Dãy ${loc.row_no} - Ô ${String(loc.level_no).padStart(2, "0")}`;
+    Number(loc.area_id) === 1
+      ? `Dãy ${loc.row_no} - Kệ ${loc.level_no}`
+      : `Lầu 6 - Dãy ${loc.row_no} - Ô ${String(loc.level_no).padStart(2, "0")}`;
 
   if (!stocks.length) {
     $("detailContent").innerHTML = `
@@ -755,7 +718,7 @@ function openDetailModal(locationId) {
                   <td>${esc(s.customer || "")}</td>
                   <td>${esc(s.note || "")}</td>
                   <td>
-                    <button class="link-btn" onclick="openStockModal(${s.id})">Sửa</button>
+                    <button class="link-btn" onclick="editStockFromAnyModal(${s.id})">Sửa</button>
                     <button class="link-btn" onclick="openMoveModal(${s.id})">Chuyển</button>
                     <button class="link-btn danger" onclick="markExported(${s.id})">Xuất hết</button>
                   </td>
@@ -770,7 +733,7 @@ function openDetailModal(locationId) {
 }
 
 function closeDetailModal() {
-  $("detailModal").classList.add("hidden");
+  $("detailModal")?.classList.add("hidden");
   State.selectedLocationId = null;
 }
 
@@ -788,7 +751,7 @@ async function markExported(stockId) {
     await apiPost(`/api/stocks/${stockId}/exported`, {});
     toast("Đã đánh dấu xuất hết.");
 
-    closeDetailModal();
+    closeAllModals();
     await reloadStocksAndLocations();
   } catch (err) {
     console.error(err);
@@ -828,12 +791,19 @@ async function loadLocationsForSelect(areaSelectId, locationSelectId) {
   select.innerHTML = `<option value="">Chọn vị trí</option>`;
 
   locations
-    .sort((a, b) => Number(a.row_no) - Number(b.row_no) || Number(a.level_no) - Number(b.level_no))
+    .sort(
+      (a, b) =>
+        Number(a.row_no) - Number(b.row_no) ||
+        Number(a.level_no) - Number(b.level_no)
+    )
     .forEach((loc) => {
       const text =
-  areaId === 1
-    ? `${loc.location_code} - Dãy ${loc.row_no} - Kệ ${loc.level_no}`
-    : `${loc.location_code} - Dãy ${loc.row_no} - Ô ${String(loc.level_no).padStart(2, "0")}`;
+        areaId === 1
+          ? `${loc.location_code} - Dãy ${loc.row_no} - Kệ ${loc.level_no}`
+          : `${loc.location_code} - Dãy ${loc.row_no} - Ô ${String(loc.level_no).padStart(
+              2,
+              "0"
+            )}`;
 
       select.insertAdjacentHTML(
         "beforeend",
@@ -852,10 +822,12 @@ async function loadAllLocationsForMove() {
 
   all.forEach((loc) => {
     const areaName = getAreaName(loc.area_id);
+
     const text =
-  Number(loc.area_id) === 1
-    ? `${areaName} - Dãy ${loc.row_no} - Kệ ${loc.level_no}`
-    : `${areaName} - Dãy ${loc.row_no} - Ô ${String(loc.level_no).padStart(2, "0")}`;
+      Number(loc.area_id) === 1
+        ? `${areaName} - Dãy ${loc.row_no} - Kệ ${loc.level_no}`
+        : `${areaName} - Dãy ${loc.row_no} - Ô ${String(loc.level_no).padStart(2, "0")}`;
+
     select.insertAdjacentHTML(
       "beforeend",
       `<option value="${loc.id}">${esc(text)}</option>`
@@ -899,11 +871,16 @@ function exportExcelLikeCsv() {
     .forEach((s) => {
       const loc = getLocationById(s.location_id);
 
+      const levelText =
+        Number(loc?.area_id) === 1
+          ? `Kệ ${loc?.level_no}`
+          : `Ô ${String(loc?.level_no).padStart(2, "0")}`;
+
       rows.push([
         getAreaName(loc?.area_id),
         loc?.location_code || "",
         loc?.row_no || "",
-        loc?.level_no || "",
+        levelText,
         s.style_code || "",
         s.po_no || "",
         s.color || "",
@@ -930,6 +907,27 @@ function exportExcelLikeCsv() {
   a.click();
 
   URL.revokeObjectURL(url);
+}
+
+/* =========================
+   MODAL HELPERS
+========================= */
+
+function closeAllModals() {
+  $("detailModal")?.classList.add("hidden");
+  $("stockModal")?.classList.add("hidden");
+  $("moveModal")?.classList.add("hidden");
+  $("rowModal")?.classList.add("hidden");
+
+  State.selectedLocationId = null;
+}
+
+function editStockFromAnyModal(stockId) {
+  closeAllModals();
+
+  setTimeout(() => {
+    openStockModal(stockId);
+  }, 160);
 }
 
 /* =========================
@@ -995,16 +993,10 @@ function toast(message) {
 function showLoading(show) {
   $("loadingOverlay")?.classList.toggle("hidden", !show);
 }
-function editStockFromDetail(stockId) {
-  closeDetailModal();
 
-  setTimeout(() => {
-    openStockModal(stockId);
-  }, 80);
-}
 /* Cho phép gọi từ HTML onclick */
 window.openStockModal = openStockModal;
 window.openMoveModal = openMoveModal;
 window.openDetailModal = openDetailModal;
 window.markExported = markExported;
-window.editStockFromDetail = editStockFromDetail;
+window.editStockFromAnyModal = editStockFromAnyModal;
