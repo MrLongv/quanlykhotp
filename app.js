@@ -222,24 +222,84 @@ function renderLocations() {
   grid.innerHTML = Object.keys(grouped)
     .sort((a, b) => Number(a) - Number(b))
     .map((rowNo) => {
-      const rowLocations = grouped[rowNo].sort((a, b) => Number(a.level_no) - Number(b.level_no));
+      const rowLocations = grouped[rowNo].sort(
+        (a, b) => Number(a.level_no) - Number(b.level_no)
+      );
 
       return `
-        <div class="row-block">
-          <div class="row-title">
-            <h3>Dãy ${rowNo}</h3>
-            <span>${rowLocations.length} vị trí</span>
+        <div class="warehouse-row-map">
+          <div class="warehouse-row-title">
+            <div>
+              <span class="row-badge">DÃY ${String(rowNo).padStart(2, "0")}</span>
+              <h3>${State.currentAreaName}</h3>
+            </div>
+            <small>${rowLocations.length} vị trí</small>
           </div>
 
-          <div class="location-cards">
-            ${rowLocations.map(renderLocationCard).join("")}
+          <div class="shelf-map ${State.currentAreaId === 1 ? "three-level" : "one-level"}">
+            ${rowLocations.map(renderShelfBox).join("")}
           </div>
         </div>
       `;
     })
     .join("");
 }
+function renderShelfBox(loc) {
+  const stocks = getStocksByLocation(loc.id);
+  const totalCarton = stocks.reduce((sum, s) => sum + Number(s.carton_qty || 0), 0);
 
+  const isEmpty = stocks.length === 0;
+  const statusClass = isEmpty ? "empty" : totalCarton >= 50 ? "full" : "used";
+
+  const shelfName =
+    State.currentAreaId === 1
+      ? `KỆ ${loc.level_no}`
+      : `DÃY ${loc.row_no}`;
+
+  const stockHtml = isEmpty
+    ? `
+      <div class="shelf-empty">TRỐNG</div>
+    `
+    : `
+      <div class="shelf-stock-list">
+        ${stocks
+          .slice(0, 3)
+          .map(
+            (s) => `
+              <div class="shelf-stock-item">
+                <strong>${esc(s.style_code)}</strong>
+                <span>${esc(s.po_no)}</span>
+                <b>${Number(s.carton_qty || 0)} KIỆN</b>
+              </div>
+            `
+          )
+          .join("")}
+        ${
+          stocks.length > 3
+            ? `<div class="shelf-more">+${stocks.length - 3} mã khác</div>`
+            : ""
+        }
+      </div>
+    `;
+
+  return `
+    <div class="shelf-box ${statusClass}">
+      <div class="shelf-top">
+        <strong>${shelfName}</strong>
+        <span>${esc(loc.location_code)}</span>
+      </div>
+
+      <div class="shelf-content">
+        ${stockHtml}
+      </div>
+
+      <div class="shelf-actions">
+        <button onclick="openDetailModal(${loc.id})">Chi tiết</button>
+        <button onclick="openStockModal(null, ${loc.id})">+ Thêm</button>
+      </div>
+    </div>
+  `;
+}
 function renderLocationCard(loc) {
   const stocks = getStocksByLocation(loc.id);
   const totalCarton = stocks.reduce((sum, s) => sum + Number(s.carton_qty || 0), 0);
