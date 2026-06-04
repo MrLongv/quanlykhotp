@@ -3,22 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
   <title>Quản lý vị trí kho thành phẩm</title>
-
   <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
   <div class="app-shell">
 
-    <!-- HEADER -->
     <header class="app-header">
       <div class="header-left">
-        <div class="app-logo">
-          <span>WH</span>
-        </div>
-
+        <div class="app-logo"><span>WH</span></div>
         <div>
           <h1>Quản lý vị trí kho thành phẩm</h1>
           <p>Theo dõi mã hàng, PO, số kiện theo từng dãy/kệ/ô</p>
@@ -31,11 +25,9 @@
       </div>
     </header>
 
-    <!-- TOP SEARCH -->
     <section class="search-panel">
       <div class="search-box">
         <span class="search-icon">⌕</span>
-
         <input
           type="search"
           id="globalSearch"
@@ -51,15 +43,10 @@
       </div>
     </section>
 
-    <!-- MAIN LAYOUT -->
     <main class="main-layout">
-
-      <!-- SIDEBAR -->
       <aside class="sidebar">
         <div class="sidebar-section">
-          <div class="section-title">
-            <span>Khu vực</span>
-          </div>
+          <div class="section-title"><span>Khu vực</span></div>
 
           <div class="area-list" id="areaList">
             <button class="area-item active" data-area-id="1" data-area-code="KTP">
@@ -81,62 +68,39 @@
         </div>
 
         <div class="sidebar-section">
-          <div class="section-title">
-            <span>Thao tác nhanh</span>
-          </div>
-
-          <button class="quick-btn" id="btnAddRow">
-            + Thêm dãy mới
-          </button>
-
-          <button class="quick-btn" id="btnOpenAddStock">
-            + Thêm hàng vào vị trí
-          </button>
-
-          <button class="quick-btn" id="btnShowEmpty">
-            Xem vị trí trống
-          </button>
-
-          <button class="quick-btn" id="btnShowInStock">
-            Xem vị trí có hàng
-          </button>
+          <div class="section-title"><span>Thao tác nhanh</span></div>
+          <button class="quick-btn" id="btnAddRow">+ Thêm dãy mới</button>
+          <button class="quick-btn" id="btnOpenAddStock">+ Thêm hàng vào vị trí</button>
+          <button class="quick-btn" id="btnShowEmpty">Xem vị trí trống</button>
+          <button class="quick-btn" id="btnShowInStock">Xem vị trí có hàng</button>
         </div>
 
         <div class="sidebar-note">
           <strong>Gợi ý sử dụng</strong>
-          <p>
-            Khi xuất hàng, nhập mã hàng hoặc PO vào ô tìm kiếm để biết hàng đang nằm ở dãy/kệ/ô nào.
-          </p>
+          <p>Khi xuất hàng, nhập mã hàng hoặc PO vào ô tìm kiếm để biết hàng đang nằm ở dãy/kệ/ô nào.</p>
         </div>
       </aside>
 
-      <!-- CONTENT -->
       <section class="content">
-
-        <!-- SUMMARY CARDS -->
         <div class="summary-grid">
           <div class="summary-card">
             <span class="summary-label">Tổng vị trí</span>
             <strong id="totalLocations">0</strong>
           </div>
-
           <div class="summary-card">
             <span class="summary-label">Vị trí có hàng</span>
             <strong id="usedLocations">0</strong>
           </div>
-
           <div class="summary-card">
             <span class="summary-label">Vị trí trống</span>
             <strong id="emptyLocations">0</strong>
           </div>
-
           <div class="summary-card">
             <span class="summary-label">Tổng số kiện</span>
             <strong id="totalCartons">0</strong>
           </div>
         </div>
 
-        <!-- CONTENT HEADER -->
         <div class="content-header">
           <div>
             <h2 id="currentAreaTitle">Kho thành phẩm</h2>
@@ -149,7 +113,6 @@
           </div>
         </div>
 
-        <!-- SEARCH RESULT -->
         <div class="search-result-panel hidden" id="searchResultPanel">
           <div class="panel-heading">
             <h3>Kết quả tìm kiếm</h3>
@@ -170,19 +133,13 @@
                   <th>Thao tác</th>
                 </tr>
               </thead>
-              <tbody id="searchResultBody">
-                <!-- JS render -->
-              </tbody>
+              <tbody id="searchResultBody"></tbody>
             </table>
           </div>
         </div>
 
-        <!-- GRID VIEW -->
-        <div class="warehouse-grid" id="warehouseGrid">
-          <!-- JS render vị trí tại đây -->
-        </div>
+        <div class="warehouse-grid" id="warehouseGrid"></div>
 
-        <!-- TABLE VIEW -->
         <div class="table-panel hidden" id="tablePanel">
           <div class="table-wrap">
             <table class="data-table">
@@ -199,13 +156,10 @@
                   <th>Thao tác</th>
                 </tr>
               </thead>
-              <tbody id="stockTableBody">
-                <!-- JS render -->
-              </tbody>
+              <tbody id="stockTableBody"></tbody>
             </table>
           </div>
         </div>
-
       </section>
     </main>
   </div>
@@ -218,7 +172,6 @@
           <h3 id="stockModalTitle">Thêm hàng vào vị trí</h3>
           <p>Nhập thông tin mã hàng, PO và số kiện thực tế</p>
         </div>
-
         <button class="icon-btn" id="btnCloseStockModal">×</button>
       </div>
 
@@ -293,16 +246,13 @@
           <h3>Chuyển vị trí</h3>
           <p>Chọn vị trí mới cho lô hàng</p>
         </div>
-
         <button class="icon-btn" id="btnCloseMoveModal">×</button>
       </div>
 
       <div class="modal-body">
         <input type="hidden" id="moveStockId" />
 
-        <div class="move-info" id="moveStockInfo">
-          <!-- JS render -->
-        </div>
+        <div class="move-info" id="moveStockInfo"></div>
 
         <div class="form-group">
           <label>Chọn vị trí mới</label>
@@ -332,7 +282,6 @@
           <h3>Thêm dãy mới</h3>
           <p>Hệ thống sẽ tự tạo vị trí theo khu vực đang chọn</p>
         </div>
-
         <button class="icon-btn" id="btnCloseRowModal">×</button>
       </div>
 
@@ -371,19 +320,59 @@
           <h3 id="detailTitle">Chi tiết vị trí</h3>
           <p id="detailSubTitle">Danh sách hàng đang nằm tại vị trí này</p>
         </div>
-
         <button class="icon-btn" id="btnCloseDetailModal">×</button>
       </div>
 
       <div class="modal-body">
-        <div id="detailContent">
-          <!-- JS render -->
-        </div>
+        <div id="detailContent"></div>
       </div>
 
       <div class="modal-footer">
         <button class="btn ghost" id="btnCloseDetail">Đóng</button>
         <button class="btn primary" id="btnAddStockFromDetail">+ Thêm hàng vào vị trí này</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PARTIAL EXPORT -->
+  <div class="modal-backdrop hidden" id="partialExportModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <h3>Xuất một phần</h3>
+          <p>Nhập số kiện thực tế cần xuất khỏi vị trí này</p>
+        </div>
+        <button class="icon-btn" id="btnClosePartialExportModal">×</button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="partialExportStockId" />
+
+        <div class="info-box" id="partialExportInfo"></div>
+
+        <div class="form-group">
+          <label>Số kiện xuất <span>*</span></label>
+          <input
+            type="number"
+            id="partialExportQty"
+            min="1"
+            placeholder="Nhập số kiện cần xuất"
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Ghi chú</label>
+          <textarea
+            id="partialExportNote"
+            rows="3"
+            placeholder="VD: Xuất theo cont, xuất giao khách, xuất bổ sung..."
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn ghost" id="btnCancelPartialExport">Hủy</button>
+        <button class="btn primary" id="btnConfirmPartialExport">Xác nhận xuất</button>
       </div>
     </div>
   </div>
