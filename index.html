@@ -21,7 +21,7 @@
 
         <div>
           <h1>Quản lý vị trí kho thành phẩm</h1>
-          <p>Theo dõi mã hàng, PO, số kiện theo từng dãy/kệ</p>
+          <p>Theo dõi mã hàng, PO, số kiện theo từng dãy/kệ/ô</p>
         </div>
       </div>
 
@@ -35,14 +35,14 @@
     <section class="search-panel">
       <div class="search-box">
         <span class="search-icon">⌕</span>
-        <input 
-          <input 
-  type="search" 
-  id="globalSearch"
-  placeholder="Tìm mã hàng, PO, màu, khách hàng hoặc vị trí..."
-  autocomplete="off"
-  enterkeyhint="search"
-/>
+
+        <input
+          type="search"
+          id="globalSearch"
+          placeholder="Tìm mã hàng, PO, màu, khách hàng hoặc vị trí..."
+          autocomplete="off"
+          enterkeyhint="search"
+        />
       </div>
 
       <div class="search-actions">
@@ -74,7 +74,7 @@
               <span class="area-icon">6</span>
               <div>
                 <strong>Lầu 6</strong>
-                <small>Dãy 1 - 5</small>
+                <small>Dãy 1 - 5, mỗi dãy 20 ô</small>
               </div>
             </button>
           </div>
@@ -105,7 +105,7 @@
         <div class="sidebar-note">
           <strong>Gợi ý sử dụng</strong>
           <p>
-            Khi xuất hàng, nhập mã hàng hoặc PO vào ô tìm kiếm để biết hàng đang nằm ở dãy/kệ nào.
+            Khi xuất hàng, nhập mã hàng hoặc PO vào ô tìm kiếm để biết hàng đang nằm ở dãy/kệ/ô nào.
           </p>
         </div>
       </aside>
@@ -191,7 +191,7 @@
                   <th>Vị trí</th>
                   <th>Khu vực</th>
                   <th>Dãy</th>
-                  <th>Kệ/Tầng</th>
+                  <th>Kệ/Ô</th>
                   <th>Mã hàng</th>
                   <th>PO</th>
                   <th>Số kiện</th>
@@ -352,7 +352,7 @@
 
         <div class="form-note">
           <strong>Lưu ý:</strong>
-          Kho thành phẩm sẽ tạo 3 kệ cho mỗi dãy. Lầu 6 mặc định tạo 1 vị trí theo dãy.
+          Kho thành phẩm sẽ tạo 3 kệ cho mỗi dãy. Lầu 6 mặc định tạo 20 ô cho mỗi dãy.
         </div>
       </div>
 
