@@ -377,7 +377,13 @@ function renderTable() {
           <td>${esc(loc?.location_code || "")}</td>
           <td>${esc(getAreaName(loc?.area_id))}</td>
           <td>${esc(loc?.row_no || "")}</td>
-          <td>${esc(loc?.level_no || "")}</td>
+          <td>
+ ${
+   Number(loc?.area_id) === 1
+     ? `Kệ ${loc?.level_no}`
+     : `Ô ${String(loc?.level_no).padStart(2,"0")}`
+ }
+</td>
           <td>${esc(s.style_code)}</td>
           <td>${esc(s.po_no)}</td>
           <td>${Number(s.carton_qty || 0)}</td>
@@ -849,7 +855,7 @@ function exportExcelLikeCsv() {
       "Khu vực",
       "Mã vị trí",
       "Dãy",
-      "Kệ/Tầng",
+      "Kệ/Ô",
       "Mã hàng",
       "PO",
       "Màu",
