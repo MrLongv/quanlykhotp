@@ -1351,14 +1351,23 @@ function esc(str) {
 function formatDateTime(v) {
   if (!v) return "";
 
-  return new Date(v).toLocaleString("vi-VN", {
+  let raw = String(v).trim();
+
+  // D1 CURRENT_TIMESTAMP thường trả về: 2026-06-04 08:53:39
+  // Đây là UTC nhưng không có ký hiệu Z, nên phải gắn Z để JS hiểu là UTC
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(raw)) {
+    raw = raw.replace(" ", "T") + "Z";
+  }
+
+  return new Date(raw).toLocaleString("vi-VN", {
     timeZone: "Asia/Ho_Chi_Minh",
+    hour12: false,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-    second: "2-digit"
+    second: "2-digit",
   });
 }
 
