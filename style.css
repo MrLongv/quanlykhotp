@@ -1829,3 +1829,38 @@ button:disabled {
     color:#fff;
     border:none;
 }
+/* =========================
+   MOBILE HEADER BUTTONS
+========================= */
+
+@media (max-width:768px){
+
+  #btnOpenLogs,
+  #btnRefresh,
+  #btnExportExcel,
+  #btnExportAllExcel,
+  #btnLogout{
+      background:linear-gradient(
+          135deg,
+          #2563eb,
+          #38bdf8
+      ) !important;
+
+      color:#fff !important;
+      border:none !important;
+  }
+
+  #btnOpenLogs:hover,
+  #btnRefresh:hover,
+  #btnExportExcel:hover,
+  #btnExportAllExcel:hover,
+  #btnLogout:hover{
+      filter:brightness(1.05);
+  }
+
+  .header-actions .btn{
+      font-weight:700;
+      box-shadow:
+      0 4px 12px rgba(37,99,235,.25);
+  }
+}
