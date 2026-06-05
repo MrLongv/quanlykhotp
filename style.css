@@ -1770,3 +1770,77 @@ button:disabled {
     align-items: flex-start !important;
   }
 }
+/* =========================
+   DESKTOP HEADER CLEAN FIX
+========================= */
+@media (min-width: 769px){
+
+  .app-header{
+    display:flex !important;
+    align-items:center !important;
+    justify-content:space-between !important;
+    min-height:118px !important;
+    padding:18px 22px !important;
+    border-radius:20px !important;
+  }
+
+  .header-left{
+    display:flex !important;
+    align-items:center !important;
+    gap:14px !important;
+    flex:1 !important;
+  }
+
+  .app-header h1{
+    font-size:20px !important;
+    line-height:1.2 !important;
+    margin:0 !important;
+    white-space:normal !important;
+  }
+
+  .app-header p{
+    display:block !important;
+    font-size:13px !important;
+    margin-top:6px !important;
+  }
+
+  .header-actions{
+    display:grid !important;
+    grid-template-columns:140px 140px !important;
+    gap:10px !important;
+    width:auto !important;
+  }
+
+  .header-actions .btn,
+  .user-box{
+    width:140px !important;
+    height:48px !important;
+    min-height:48px !important;
+    border-radius:14px !important;
+  }
+
+  .user-box{
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    padding:0 10px !important;
+  }
+
+  /* Cho nút Xuất khu vực không bị xanh quá nổi */
+  #btnExportExcel{
+    background:rgba(15,23,42,.74) !important;
+    border:1px solid rgba(148,163,184,.28) !important;
+    color:#f8fafc !important;
+    box-shadow:none !important;
+  }
+
+  #btnExportExcel:hover{
+    background:rgba(30,41,59,.95) !important;
+  }
+
+  /* Chỉ để Xuất tất cả hoặc nút chính khác nổi nếu cần */
+  #btnClearSearch,
+  .btn.soft{
+    background:#254db8 !important;
+  }
+}
