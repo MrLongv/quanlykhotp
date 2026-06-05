@@ -10,6 +10,7 @@ const State = {
   filterMode: "all",
   areas: [],
   locations: [],
+  allLocations: [],
   stocks: [],
   selectedLocationId: null,
   token: localStorage.getItem("warehouse_token") || "",
@@ -121,7 +122,12 @@ async function loadInitialData() {
 
     State.areas = await apiGet("/api/areas");
     State.locations = await apiGet(`/api/locations?areaId=${State.currentAreaId}`);
-    State.stocks = await apiGet("/api/stocks");
+
+const area1Locations = await apiGet("/api/locations?areaId=1");
+const area2Locations = await apiGet("/api/locations?areaId=2");
+State.allLocations = [...area1Locations, ...area2Locations];
+
+State.stocks = await apiGet("/api/stocks");
 
     renderAll();
     applyPermissionUI();
@@ -1207,7 +1213,12 @@ async function loadAllLocationsForMove() {
 
 async function reloadStocksAndLocations() {
   State.locations = await apiGet(`/api/locations?areaId=${State.currentAreaId}`);
-  State.stocks = await apiGet("/api/stocks");
+
+const area1Locations = await apiGet("/api/locations?areaId=1");
+const area2Locations = await apiGet("/api/locations?areaId=2");
+State.allLocations = [...area1Locations, ...area2Locations];
+
+State.stocks = await apiGet("/api/stocks");
   renderAll();
   applyPermissionUI();
 }
@@ -1216,76 +1227,126 @@ async function reloadStocksAndLocations() {
    EXPORT Excel
 ========================= */
 
-function exportExcelLikeCsv() {
-  const data = [];
+async function exportExcelLikeCsv() {
+  if (typeof XLSX === "undefined") {
+    toast("Chưa tải được thư viện Excel. Kiểm tra index.html.");
+    return;
+  }
 
-  const exportRows = State.stocks
-    .filter((s) => String(s.status || "in_stock") === "in_stock")
-    .map((s) => {
-      const loc = getLocationById(s.location_id);
+  try {
+    showLoading(true);
+
+    const area1Locations = await apiGet("/api/locations?areaId=1");
+    const area2Locations = await apiGet("/api/locations?areaId=2");
+    const allLocations = [...area1Locations, ...area2Locations];
+
+    const locationMap = new Map(
+      allLocations.map((loc) => [Number(loc.id), loc])
+    );
+
+    const exportAll = confirm(
+      "OK = Xuất toàn bộ Kho TP + Lầu 6\nHỦY = Chỉ xuất khu vực đang xem"
+    );
+
+    const exportAreaId = exportAll ? 0 : Number(State.currentAreaId);
+
+    const exportRows = State.stocks
+      .filter((s) => String(s.status || "in_stock") === "in_stock")
+      .map((s) => {
+        const loc = locationMap.get(Number(s.location_id));
+
+        return {
+          stock: s,
+          loc,
+          areaId: Number(loc?.area_id || 0),
+          rowNo: Number(loc?.row_no || 0),
+          levelNo: Number(loc?.level_no || 0),
+        };
+      })
+      .filter((x) => x.loc)
+      .filter((x) => {
+        if (!exportAreaId) return true;
+        return Number(x.areaId) === Number(exportAreaId);
+      })
+      .sort((a, b) => {
+        if (a.areaId !== b.areaId) return a.areaId - b.areaId;
+        if (a.rowNo !== b.rowNo) return a.rowNo - b.rowNo;
+        return a.levelNo - b.levelNo;
+      });
+
+    const data = exportRows.map(({ stock: s, loc }) => {
+      const isKTP = Number(loc.area_id) === 1;
+
+      const levelText = isKTP
+        ? `Kệ ${loc.level_no}`
+        : `Ô ${String(loc.level_no).padStart(2, "0")}`;
 
       return {
-        stock: s,
-        loc,
-        areaId: Number(loc?.area_id || 0),
-        rowNo: Number(loc?.row_no || 0),
-        levelNo: Number(loc?.level_no || 0),
+        "Khu vực": cleanExcelText(getAreaName(loc.area_id)),
+        "Mã vị trí": cleanExcelText(loc.location_code),
+        "Dãy": Number(loc.row_no),
+        "Kệ/Ô": cleanExcelText(levelText),
+        "Mã hàng": cleanExcelText(s.style_code),
+        "PO": cleanExcelText(s.po_no),
+        "Màu": cleanExcelText(s.color),
+        "Size": cleanExcelText(s.size),
+        "Số kiện": Number(s.carton_qty || 0),
+        "Khách hàng": cleanExcelText(s.customer),
+        "Ghi chú": cleanExcelText(s.note),
       };
-    })
-    .sort((a, b) => {
-      if (a.areaId !== b.areaId) return a.areaId - b.areaId;
-      if (a.rowNo !== b.rowNo) return a.rowNo - b.rowNo;
-      return a.levelNo - b.levelNo;
     });
 
-  exportRows.forEach(({ stock: s, loc }) => {
-    const levelText =
-      Number(loc?.area_id) === 1
-        ? `Kệ ${loc?.level_no}`
-        : `Ô ${String(loc?.level_no).padStart(2, "0")}`;
+    if (!data.length) {
+      toast("Không có dữ liệu để xuất.");
+      return;
+    }
 
-    data.push({
-      "Khu vực": cleanExcelText(getAreaName(loc?.area_id)),
-      "Mã vị trí": cleanExcelText(loc?.location_code || ""),
-      "Dãy": Number(loc?.row_no || 0),
-      "Kệ/Ô": cleanExcelText(levelText),
-      "Mã hàng": cleanExcelText(s.style_code || ""),
-      "PO": cleanExcelText(s.po_no || ""),
-      "Màu": cleanExcelText(s.color || ""),
-      "Size": cleanExcelText(s.size || ""),
-      "Số kiện": Number(s.carton_qty || 0),
-      "Khách hàng": cleanExcelText(s.customer || ""),
-      "Ghi chú": cleanExcelText(s.note || ""),
-    });
-  });
+    const ws = XLSX.utils.json_to_sheet(data);
 
-  const ws = XLSX.utils.json_to_sheet(data);
+    ws["!cols"] = [
+      { wch: 18 },
+      { wch: 18 },
+      { wch: 8 },
+      { wch: 12 },
+      { wch: 22 },
+      { wch: 18 },
+      { wch: 14 },
+      { wch: 12 },
+      { wch: 10 },
+      { wch: 20 },
+      { wch: 34 },
+    ];
 
-  ws["!cols"] = [
-    { wch: 18 },
-    { wch: 16 },
-    { wch: 8 },
-    { wch: 10 },
-    { wch: 18 },
-    { wch: 18 },
-    { wch: 14 },
-    { wch: 12 },
-    { wch: 10 },
-    { wch: 18 },
-    { wch: 30 },
-  ];
+    ws["!autofilter"] = {
+      ref: `A1:K${data.length + 1}`,
+    };
 
-  ws["!autofilter"] = {
-    ref: `A1:K${data.length + 1}`,
-  };
+    const wb = XLSX.utils.book_new();
 
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Ton kho");
+    const sheetName =
+      exportAreaId === 0
+        ? "Toan bo kho"
+        : exportAreaId === 1
+        ? "Kho thanh pham"
+        : "Lau 6";
 
-  XLSX.writeFile(
-    wb,
-    `ton-kho-thanh-pham-${new Date().toISOString().slice(0, 10)}.xlsx`
-  );
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+
+    const fileName =
+      exportAreaId === 0
+        ? `ton-kho-toan-bo-${todayText()}.xlsx`
+        : exportAreaId === 1
+        ? `ton-kho-thanh-pham-${todayText()}.xlsx`
+        : `ton-kho-lau-6-${todayText()}.xlsx`;
+
+    XLSX.writeFile(wb, fileName);
+
+  } catch (err) {
+    console.error(err);
+    toast("Xuất Excel không thành công.");
+  } finally {
+    showLoading(false);
+  }
 }
 /* =========================
    MODAL HELPERS
@@ -1325,7 +1386,11 @@ function getStocksByLocation(locationId) {
 }
 
 function getLocationById(id) {
-  return State.locations.find((x) => Number(x.id) === Number(id));
+  return (
+    State.allLocations?.find((x) => Number(x.id) === Number(id)) ||
+    State.locations.find((x) => Number(x.id) === Number(id)) ||
+    null
+  );
 }
 
 function getAreaName(areaId) {
