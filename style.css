@@ -1864,3 +1864,25 @@ button:disabled {
       0 4px 12px rgba(37,99,235,.25);
   }
 }
+.panel-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+@media(max-width:768px){
+  .panel-heading{
+    align-items:flex-start;
+  }
+
+  .panel-actions{
+    width:100%;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+  }
+
+  .panel-actions .btn{
+    width:100%;
+  }
+}
