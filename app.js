@@ -123,11 +123,11 @@ async function loadInitialData() {
     State.areas = await apiGet("/api/areas");
     State.locations = await apiGet(`/api/locations?areaId=${State.currentAreaId}`);
 
-const area1Locations = await apiGet("/api/locations?areaId=1");
-const area2Locations = await apiGet("/api/locations?areaId=2");
-State.allLocations = [...area1Locations, ...area2Locations];
+    const area1Locations = await apiGet("/api/locations?areaId=1");
+    const area2Locations = await apiGet("/api/locations?areaId=2");
+    State.allLocations = [...area1Locations, ...area2Locations];
 
-State.stocks = await apiGet("/api/stocks");
+    State.stocks = await apiGet("/api/stocks");
 
     renderAll();
     applyPermissionUI();
@@ -228,8 +228,11 @@ function showApp() {
 }
 
 function renderUser() {
-  $("currentUserName") && ($("currentUserName").textContent = State.user?.full_name || "Người dùng");
-  $("currentUserRole") && ($("currentUserRole").textContent = State.user?.role || "");
+  $("currentUserName") &&
+    ($("currentUserName").textContent = State.user?.full_name || "Người dùng");
+
+  $("currentUserRole") &&
+    ($("currentUserRole").textContent = State.user?.role || "");
 }
 
 function isAdmin() {
@@ -255,17 +258,20 @@ function applyPermissionUI() {
 
 function bindEvents() {
   $("btnLogin")?.addEventListener("click", login);
+
   $("loginPassword")?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") login();
   });
+
   $("loginUsername")?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") login();
   });
 
   $("btnLogout")?.addEventListener("click", logout);
   $("btnRefresh")?.addEventListener("click", loadInitialData);
- $("btnExportExcel")?.addEventListener("click", () => exportExcelByArea(false));
-$("btnExportAllExcel")?.addEventListener("click", () => exportExcelByArea(true));
+
+  $("btnExportExcel")?.addEventListener("click", () => exportExcelByArea(false));
+  $("btnExportAllExcel")?.addEventListener("click", () => exportExcelByArea(true));
 
   $("btnOpenLogs")?.addEventListener("click", openLogsModal);
   $("btnCloseLogsModal")?.addEventListener("click", closeLogsModal);
@@ -409,6 +415,7 @@ function renderHeader() {
 
 function renderSummary() {
   const locationIds = State.locations.map((x) => x.id);
+
   const activeStocks = State.stocks.filter(
     (s) => s.status === "in_stock" && locationIds.includes(Number(s.location_id))
   );
@@ -418,6 +425,7 @@ function renderSummary() {
   $("totalLocations").textContent = State.locations.length;
   $("usedLocations").textContent = usedLocationIds.size;
   $("emptyLocations").textContent = Math.max(State.locations.length - usedLocationIds.size, 0);
+
   $("totalCartons").textContent = activeStocks.reduce(
     (sum, s) => sum + Number(s.carton_qty || 0),
     0
@@ -536,9 +544,7 @@ function renderTable() {
   const tbody = $("stockTableBody");
   if (!tbody) return;
 
-  const currentLocationIds = new Set(
-    State.locations.map((loc) => Number(loc.id))
-  );
+  const currentLocationIds = new Set(State.locations.map((loc) => Number(loc.id)));
 
   const activeStocks = State.stocks.filter(
     (s) =>
@@ -556,6 +562,7 @@ function renderTable() {
   }
 
   tbody.innerHTML = activeStocks
+    .sort(sortStockByLocation)
     .map((s) => {
       const loc = getLocationById(s.location_id);
 
@@ -575,9 +582,9 @@ function renderTable() {
 
       return `
         <tr>
-          <td>${esc(loc?.location_code || "")}</td>
-          <td>${esc(getAreaName(loc?.area_id))}</td>
-          <td>${esc(loc?.row_no || "")}</td>
+          <td>${esc(loc?.location_code || s.location_code || "")}</td>
+          <td>${esc(getAreaName(loc?.area_id || s.area_id))}</td>
+          <td>${esc(loc?.row_no || s.row_no || "")}</td>
           <td>${esc(levelText)}</td>
           <td>${esc(s.style_code)}</td>
           <td>${esc(s.po_no)}</td>
@@ -589,6 +596,7 @@ function renderTable() {
     })
     .join("");
 }
+
 /* =========================
    SEARCH
 ========================= */
@@ -612,6 +620,7 @@ function handleSearch() {
       s.customer,
       s.note,
       loc?.location_code,
+      s.location_code,
     ]
       .join(" ")
       .toLowerCase();
@@ -638,6 +647,7 @@ function renderSearchResults(results) {
   }
 
   tbody.innerHTML = results
+    .sort(sortStockByLocation)
     .map((s) => {
       const loc = getLocationById(s.location_id);
 
@@ -651,7 +661,7 @@ function renderSearchResults(results) {
 
       return `
         <tr>
-          <td><strong>${esc(loc?.location_code || "")}</strong></td>
+          <td><strong>${esc(loc?.location_code || s.location_code || "")}</strong></td>
           <td>${esc(s.style_code)}</td>
           <td>${esc(s.po_no)}</td>
           <td>${esc(s.color || "")}</td>
@@ -703,7 +713,7 @@ async function openStockModal(stockId = null, locationId = null) {
     const loc = getLocationById(s.location_id);
 
     $("stockId").value = s.id;
-    $("stockArea").value = loc?.area_id || State.currentAreaId;
+    $("stockArea").value = loc?.area_id || s.area_id || State.currentAreaId;
 
     await loadLocationsForSelect("stockArea", "stockLocation");
 
@@ -799,7 +809,7 @@ async function openMoveModal(stockId) {
   $("moveStockInfo").innerHTML = `
     <div class="info-box">
       <strong>${esc(s.po_no)} - ${esc(s.style_code)}</strong>
-      <p>Đang ở: ${esc(loc?.location_code || "")}</p>
+      <p>Đang ở: ${esc(loc?.location_code || s.location_code || "")}</p>
       <p>Số kiện: ${Number(s.carton_qty || 0)}</p>
     </div>
   `;
@@ -997,7 +1007,7 @@ function openPartialExportModal(stockId) {
 
   $("partialExportInfo").innerHTML = `
     <strong>${esc(s.po_no)} - ${esc(s.style_code)}</strong>
-    <p>Vị trí: ${esc(loc?.location_code || "")}</p>
+    <p>Vị trí: ${esc(loc?.location_code || s.location_code || "")}</p>
     <p>Số kiện hiện có: <b>${Number(s.carton_qty || 0)}</b></p>
   `;
 }
@@ -1173,10 +1183,7 @@ async function loadLocationsForSelect(areaSelectId, locationSelectId) {
       const text =
         areaId === 1
           ? `${loc.location_code} - Dãy ${loc.row_no} - Kệ ${loc.level_no}`
-          : `${loc.location_code} - Dãy ${loc.row_no} - Ô ${String(loc.level_no).padStart(
-              2,
-              "0"
-            )}`;
+          : `${loc.location_code} - Dãy ${loc.row_no} - Ô ${String(loc.level_no).padStart(2, "0")}`;
 
       select.insertAdjacentHTML(
         "beforeend",
@@ -1215,17 +1222,18 @@ async function loadAllLocationsForMove() {
 async function reloadStocksAndLocations() {
   State.locations = await apiGet(`/api/locations?areaId=${State.currentAreaId}`);
 
-const area1Locations = await apiGet("/api/locations?areaId=1");
-const area2Locations = await apiGet("/api/locations?areaId=2");
-State.allLocations = [...area1Locations, ...area2Locations];
+  const area1Locations = await apiGet("/api/locations?areaId=1");
+  const area2Locations = await apiGet("/api/locations?areaId=2");
+  State.allLocations = [...area1Locations, ...area2Locations];
 
-State.stocks = await apiGet("/api/stocks");
+  State.stocks = await apiGet("/api/stocks");
+
   renderAll();
   applyPermissionUI();
 }
 
 /* =========================
-   EXPORT Excel
+   EXPORT EXCEL XLSX
 ========================= */
 
 async function exportExcelByArea(exportAll = false) {
@@ -1237,47 +1245,25 @@ async function exportExcelByArea(exportAll = false) {
   try {
     showLoading(true);
 
-    const area1Locations = await apiGet("/api/locations?areaId=1");
-    const area2Locations = await apiGet("/api/locations?areaId=2");
-    const allLocations = [...area1Locations, ...area2Locations];
-
-    console.log("Location mẫu:", allLocations[0]);
-
-    const locationMap = new Map(
-      allLocations.map((loc) => [Number(loc.id), loc])
-    );
+    if (!State.stocks || !State.stocks.length) {
+      State.stocks = await apiGet("/api/stocks");
+    }
 
     const exportAreaId = exportAll ? 0 : Number(State.currentAreaId);
 
     const exportRows = State.stocks
       .filter((s) => String(s.status || "in_stock") === "in_stock")
-      .map((s) => {
-        const loc = locationMap.get(Number(s.location_id));
-
-        return {
-          stock: s,
-          loc,
-          areaId: Number(loc?.area_id || loc?.areaId || 0),
-          rowNo: Number(loc?.row_no || loc?.rowNo || 0),
-          levelNo: Number(loc?.level_no || loc?.levelNo || 0),
-        };
-      })
-      .filter((x) => x.loc)
-      .filter((x) => {
+      .filter((s) => {
         if (!exportAreaId) return true;
-        return Number(x.areaId) === Number(exportAreaId);
+        return Number(s.area_id) === Number(exportAreaId);
       })
-      .sort((a, b) => {
-        if (a.areaId !== b.areaId) return a.areaId - b.areaId;
-        if (a.rowNo !== b.rowNo) return a.rowNo - b.rowNo;
-        return a.levelNo - b.levelNo;
-      });
+      .sort(sortStockByLocation);
 
-    const data = exportRows.map(({ stock: s, loc }) => {
-      const areaId = Number(loc.area_id || loc.areaId || 0);
-      const rowNo = Number(loc.row_no || loc.rowNo || 0);
-      const levelNo = Number(loc.level_no || loc.levelNo || 0);
-      const locationCode = loc.location_code || loc.locationCode || loc.code || "";
+    const data = exportRows.map((s) => {
+      const areaId = Number(s.area_id || 0);
+      const rowNo = Number(s.row_no || 0);
+      const levelNo = Number(s.level_no || 0);
+      const locationCode = s.location_code || "";
 
       const levelText =
         areaId === 1
@@ -1289,11 +1275,11 @@ async function exportExcelByArea(exportAll = false) {
         "Mã vị trí": cleanExcelText(locationCode),
         "Dãy": rowNo,
         "Kệ/Ô": cleanExcelText(levelText),
-        "Mã hàng": cleanExcelText(s.style_code || s.styleCode),
-        "PO": cleanExcelText(s.po_no || s.poNo),
+        "Mã hàng": cleanExcelText(s.style_code),
+        "PO": cleanExcelText(s.po_no),
         "Màu": cleanExcelText(s.color),
         "Size": cleanExcelText(s.size),
-        "Số kiện": Number(s.carton_qty || s.cartonQty || 0),
+        "Số kiện": Number(s.carton_qty || 0),
         "Khách hàng": cleanExcelText(s.customer),
         "Ghi chú": cleanExcelText(s.note),
       };
@@ -1311,13 +1297,13 @@ async function exportExcelByArea(exportAll = false) {
       { wch: 18 },
       { wch: 8 },
       { wch: 12 },
-      { wch: 22 },
+      { wch: 24 },
       { wch: 18 },
       { wch: 14 },
       { wch: 12 },
       { wch: 10 },
       { wch: 20 },
-      { wch: 34 },
+      { wch: 36 },
     ];
 
     ws["!autofilter"] = {
@@ -1351,6 +1337,7 @@ async function exportExcelByArea(exportAll = false) {
     showLoading(false);
   }
 }
+
 /* =========================
    MODAL HELPERS
 ========================= */
@@ -1405,6 +1392,21 @@ function getAreaName(areaId) {
   return area?.name || "";
 }
 
+function sortStockByLocation(a, b) {
+  const areaA = Number(a.area_id || 0);
+  const areaB = Number(b.area_id || 0);
+
+  const rowA = Number(a.row_no || 0);
+  const rowB = Number(b.row_no || 0);
+
+  const levelA = Number(a.level_no || 0);
+  const levelB = Number(b.level_no || 0);
+
+  if (areaA !== areaB) return areaA - areaB;
+  if (rowA !== rowB) return rowA - rowB;
+  return levelA - levelB;
+}
+
 function groupBy(arr, key) {
   return arr.reduce((acc, item) => {
     const value = item[key];
@@ -1426,19 +1428,23 @@ function esc(str) {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 }
+
 function cleanExcelText(value) {
   return String(value ?? "")
     .replace(/\r?\n/g, " ")
     .replace(/\t/g, " ")
     .trim();
 }
+
+function todayText() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 function formatDateTime(v) {
   if (!v) return "";
 
   let raw = String(v).trim();
 
-  // D1 CURRENT_TIMESTAMP thường trả về: 2026-06-04 08:53:39
-  // Đây là UTC nhưng không có ký hiệu Z, nên phải gắn Z để JS hiểu là UTC
   if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(raw)) {
     raw = raw.replace(" ", "T") + "Z";
   }
