@@ -577,7 +577,6 @@ function renderTable() {
           <button class="link-btn" onclick="openMoveModal(${s.id})">Chuyển</button>
           <button class="link-btn" onclick="openPartialExportModal(${s.id})">Xuất một phần</button>
           <button class="link-btn danger" onclick="markExported(${s.id})">Xuất hết</button>
-          <button class="link-btn danger" onclick="markExported(${s.id})">Xuất hết</button>
         `
         : `<span class="muted-text">Chỉ xem</span>`;
 
@@ -657,6 +656,7 @@ function renderSearchResults(results) {
           <button class="link-btn" onclick="openDetailModal(${s.location_id})">Xem vị trí</button>
           <button class="link-btn" onclick="editStockFromAnyModal(${s.id})">Sửa</button>
           <button class="link-btn" onclick="openPartialExportModal(${s.id})">Xuất một phần</button>
+          <button class="link-btn danger" onclick="markExported(${s.id})">Xuất hết</button>
         `
         : `<button class="link-btn" onclick="openDetailModal(${s.location_id})">Xem vị trí</button>`;
 
