@@ -1796,20 +1796,14 @@ button:disabled {
     width:100%;
   }
 }
-  }
-}
 /* =========================
    HEADER ACTION COLORS
 ========================= */
 
-#btnLogs{
+#btnOpenLogs{
     background:linear-gradient(135deg,#7c3aed,#a855f7);
     color:#fff;
     border:none;
-}
-
-#btnLogs:hover{
-    filter:brightness(1.08);
 }
 
 #btnRefresh{
@@ -1818,45 +1812,20 @@ button:disabled {
     border:none;
 }
 
-#btnRefresh:hover{
-    filter:brightness(1.08);
-}
-
 #btnExportExcel{
     background:linear-gradient(135deg,#2563eb,#38bdf8);
     color:#fff;
     border:none;
 }
 
-#btnExportExcel:hover{
-    filter:brightness(1.08);
-}
-
-#btnExportAll{
+#btnExportAllExcel{
     background:linear-gradient(135deg,#ea580c,#f59e0b);
     color:#fff;
     border:none;
-}
-
-#btnExportAll:hover{
-    filter:brightness(1.08);
 }
 
 #btnLogout{
     background:linear-gradient(135deg,#dc2626,#ef4444);
     color:#fff;
     border:none;
-}
-
-#btnLogout:hover{
-    filter:brightness(1.08);
-}
-
-.user-box{
-    background:linear-gradient(
-        135deg,
-        rgba(37,99,235,.25),
-        rgba(6,182,212,.15)
-    );
-    border:1px solid rgba(56,189,248,.35);
 }
