@@ -1700,149 +1700,91 @@ button:disabled {
     width:100%;
   }
 }
-/* =========================
-   COMPACT HEADER V1.3
-========================= */
+/* =====================================
+   HEADER SaaS V3
+===================================== */
 
 .app-header{
-  min-height:auto;
-  padding:16px 18px;
-  border-radius:18px;
-  align-items:center;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+
+    padding:14px 18px;
+
+    background:#0f172a;
+
+    border:1px solid rgba(255,255,255,.08);
+
+    border-radius:20px;
+
+    min-height:78px;
 }
 
 .header-left{
-  gap:12px;
+    display:flex;
+    align-items:center;
+    gap:14px;
 }
 
 .app-logo{
-  width:48px;
-  height:48px;
-  border-radius:14px;
-  font-size:16px;
+    width:44px;
+    height:44px;
+
+    border-radius:12px;
+
+    flex-shrink:0;
+
+    font-size:16px;
 }
 
-.app-header h1{
-  font-size:18px;
-  margin-bottom:4px;
+.header-left h1{
+    margin:0;
+
+    font-size:24px;
+
+    font-weight:700;
+
+    line-height:1.2;
 }
 
-.app-header p{
-  font-size:12px;
-}
-
-.header-actions{
-  display:grid;
-  grid-template-columns:auto auto auto;
-  gap:10px;
-  align-items:center;
-}
-
-.user-box{
-  grid-row:1 / span 2;
-  min-width:140px;
-  padding:6px 10px;
-}
-
-.header-actions .btn{
-  min-height:44px;
-  padding:0 18px;
-  border-radius:14px;
-}
-
-/* Search panel gọn hơn */
-.search-panel{
-  padding:12px;
-  border-radius:18px;
-  gap:10px;
-}
-
-.search-box input{
-  min-height:46px;
-}
-
-.search-actions .btn{
-  min-height:46px;
-  padding:0 20px;
-}
-
-/* Mobile */
-@media (max-width:768px){
-  .app-header{
-    padding:14px;
-  }
-
-  .header-actions{
-    width:100%;
-    grid-template-columns:1fr 1fr;
-  }
-
-  .user-box{
-    grid-column:1 / -1;
-    grid-row:auto;
-  }
-
-  .header-actions .btn{
-    width:100%;
-  }
-
-  .search-panel{
-    padding:10px;
-  }
-}
-/* =========================
-   COMPACT APP HEADER V2
-========================= */
-
-.app-header{
-  min-height: unset;
-  padding: 14px 18px;
-  border-radius: 18px;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 14px;
-}
-
-.header-left{
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.app-logo{
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-}
-
-.app-header h1{
-  font-size: 18px;
-  margin: 0;
-}
-
-.app-header p{
-  font-size: 12px;
-  margin-top: 4px;
+.header-left p{
+    display:none;
 }
 
 .header-actions{
-  display: grid;
-  grid-template-columns: auto auto auto;
-  gap: 8px;
-  align-items: center;
-}
-
-.user-box{
-  grid-row: 1 / span 2;
-  min-width: 140px;
-  height: 44px;
-  padding: 6px 12px;
-  justify-content: center;
+    display:flex;
+    align-items:center;
+    gap:8px;
 }
 
 .header-actions .btn{
-  min-height: 44px;
-  padding: 0 18px;
-  border-radius: 14px;
+    height:42px;
+    min-height:42px;
+
+    padding:0 16px;
+
+    border-radius:12px;
+}
+
+.user-box{
+    display:flex;
+    flex-direction:column;
+
+    align-items:flex-end;
+
+    min-width:120px;
+
+    padding:0;
+
+    border:none;
+
+    background:none;
+}
+
+.user-box strong{
+    font-size:14px;
+}
+
+.user-box span{
+    font-size:12px;
 }
