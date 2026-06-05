@@ -302,7 +302,7 @@ function bindEvents() {
 
   $("btnClearSearch")?.addEventListener("click", clearSearch);
   $("btnCloseSearchResult")?.addEventListener("click", clearSearch);
-
+$("btnExportSearchExcel")?.addEventListener("click", exportSearchExcel);
   $("btnViewGrid")?.addEventListener("click", () => switchView("grid"));
   $("btnViewTable")?.addEventListener("click", () => switchView("table"));
 
@@ -633,6 +633,7 @@ function handleSearch() {
 }
 
 function renderSearchResults(results) {
+  State.searchResults = results || [];
   const panel = $("searchResultPanel");
   const tbody = $("searchResultBody");
 
@@ -1339,7 +1340,83 @@ async function exportExcelByArea(exportAll = false) {
     showLoading(false);
   }
 }
+function exportSearchExcel() {
+  if (typeof XLSX === "undefined") {
+    toast("Chưa tải được thư viện Excel.");
+    return;
+  }
 
+  const rows = (State.searchResults || [])
+    .filter((s) => String(s.status || "in_stock") === "in_stock")
+    .sort(sortStockByLocation);
+
+  if (!rows.length) {
+    toast("Không có kết quả tìm kiếm để xuất.");
+    return;
+  }
+
+  const data = rows.map((s) => {
+    const loc = getLocationById(s.location_id);
+
+    const areaId = Number(s.area_id || loc?.area_id || 0);
+    const rowNo = Number(s.row_no || loc?.row_no || 0);
+    const levelNo = Number(s.level_no || loc?.level_no || 0);
+    const locationCode = s.location_code || loc?.location_code || "";
+
+    const levelText =
+      areaId === 1
+        ? `Kệ ${levelNo}`
+        : `Ô ${String(levelNo).padStart(2, "0")}`;
+
+    return {
+      "Khu vực": cleanExcelText(getAreaName(areaId)),
+      "Mã vị trí": cleanExcelText(locationCode),
+      "Dãy": rowNo,
+      "Kệ/Ô": cleanExcelText(levelText),
+      "Mã hàng": cleanExcelText(s.style_code),
+      "PO": cleanExcelText(s.po_no),
+      "Màu": cleanExcelText(s.color),
+      "Size": cleanExcelText(s.size),
+      "Số kiện": Number(s.carton_qty || 0),
+      "Khách hàng": cleanExcelText(s.customer),
+      "Ghi chú": cleanExcelText(s.note),
+    };
+  });
+
+  const ws = XLSX.utils.json_to_sheet(data);
+
+  ws["!cols"] = [
+    { wch: 18 },
+    { wch: 18 },
+    { wch: 8 },
+    { wch: 12 },
+    { wch: 24 },
+    { wch: 18 },
+    { wch: 14 },
+    { wch: 12 },
+    { wch: 10 },
+    { wch: 20 },
+    { wch: 36 },
+  ];
+
+  ws["!autofilter"] = {
+    ref: `A1:K${data.length + 1}`,
+  };
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Ket qua tim kiem");
+
+  const keyword = clean($("globalSearch")?.value || "tim-kiem")
+    .replace(/[\\/:*?"<>|]/g, "-")
+    .replace(/\s+/g, "-");
+
+  XLSX.writeFile(
+    wb,
+    `ket-qua-tim-kiem-${keyword}-${todayText()}.xlsx`
+  );
+
+  toast("Đã xuất Excel kết quả tìm kiếm.");
+}
 /* =========================
    MODAL HELPERS
 ========================= */
