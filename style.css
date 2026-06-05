@@ -1790,3 +1790,59 @@ button:disabled {
     padding:10px;
   }
 }
+/* =========================
+   COMPACT APP HEADER V2
+========================= */
+
+.app-header{
+  min-height: unset;
+  padding: 14px 18px;
+  border-radius: 18px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 14px;
+}
+
+.header-left{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.app-logo{
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+}
+
+.app-header h1{
+  font-size: 18px;
+  margin: 0;
+}
+
+.app-header p{
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.header-actions{
+  display: grid;
+  grid-template-columns: auto auto auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.user-box{
+  grid-row: 1 / span 2;
+  min-width: 140px;
+  height: 44px;
+  padding: 6px 12px;
+  justify-content: center;
+}
+
+.header-actions .btn{
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 14px;
+}
