@@ -1213,69 +1213,80 @@ async function reloadStocksAndLocations() {
 }
 
 /* =========================
-   EXPORT CSV
+   EXPORT Excel
 ========================= */
 
 function exportExcelLikeCsv() {
-  const rows = [
-    [
-      "Khu vực",
-      "Mã vị trí",
-      "Dãy",
-      "Kệ/Ô",
-      "Mã hàng",
-      "PO",
-      "Màu",
-      "Size",
-      "Số kiện",
-      "Khách hàng",
-      "Ghi chú",
-    ],
-  ];
+  const data = [];
 
-  State.stocks
-    .filter((s) => s.status === "in_stock")
-    .forEach((s) => {
+  const exportRows = State.stocks
+    .filter((s) => String(s.status || "in_stock") === "in_stock")
+    .map((s) => {
       const loc = getLocationById(s.location_id);
 
-      const levelText =
-        Number(loc?.area_id) === 1
-          ? `Kệ ${loc?.level_no}`
-          : `Ô ${String(loc?.level_no).padStart(2, "0")}`;
-
-      rows.push([
-        getAreaName(loc?.area_id),
-        loc?.location_code || "",
-        loc?.row_no || "",
-        levelText,
-        s.style_code || "",
-        s.po_no || "",
-        s.color || "",
-        s.size || "",
-        s.carton_qty || 0,
-        s.customer || "",
-        s.note || "",
-      ]);
+      return {
+        stock: s,
+        loc,
+        areaId: Number(loc?.area_id || 0),
+        rowNo: Number(loc?.row_no || 0),
+        levelNo: Number(loc?.level_no || 0),
+      };
+    })
+    .sort((a, b) => {
+      if (a.areaId !== b.areaId) return a.areaId - b.areaId;
+      if (a.rowNo !== b.rowNo) return a.rowNo - b.rowNo;
+      return a.levelNo - b.levelNo;
     });
 
-  const csv = rows
-    .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
-    .join("\n");
+  exportRows.forEach(({ stock: s, loc }) => {
+    const levelText =
+      Number(loc?.area_id) === 1
+        ? `Kệ ${loc?.level_no}`
+        : `Ô ${String(loc?.level_no).padStart(2, "0")}`;
 
-  const blob = new Blob(["\ufeff" + csv], {
-    type: "text/csv;charset=utf-8;",
+    data.push({
+      "Khu vực": cleanExcelText(getAreaName(loc?.area_id)),
+      "Mã vị trí": cleanExcelText(loc?.location_code || ""),
+      "Dãy": Number(loc?.row_no || 0),
+      "Kệ/Ô": cleanExcelText(levelText),
+      "Mã hàng": cleanExcelText(s.style_code || ""),
+      "PO": cleanExcelText(s.po_no || ""),
+      "Màu": cleanExcelText(s.color || ""),
+      "Size": cleanExcelText(s.size || ""),
+      "Số kiện": Number(s.carton_qty || 0),
+      "Khách hàng": cleanExcelText(s.customer || ""),
+      "Ghi chú": cleanExcelText(s.note || ""),
+    });
   });
 
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
+  const ws = XLSX.utils.json_to_sheet(data);
 
-  a.href = url;
-  a.download = `ton-kho-thanh-pham-${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
+  ws["!cols"] = [
+    { wch: 18 },
+    { wch: 16 },
+    { wch: 8 },
+    { wch: 10 },
+    { wch: 18 },
+    { wch: 18 },
+    { wch: 14 },
+    { wch: 12 },
+    { wch: 10 },
+    { wch: 18 },
+    { wch: 30 },
+  ];
 
-  URL.revokeObjectURL(url);
+  ws["!autofilter"] = {
+    ref: `A1:K${data.length + 1}`,
+  };
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Ton kho");
+
+  XLSX.writeFile(
+    wb,
+    `ton-kho-thanh-pham-${new Date().toISOString().slice(0, 10)}.xlsx`
+  );
 }
-
 /* =========================
    MODAL HELPERS
 ========================= */
@@ -1347,7 +1358,12 @@ function esc(str) {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 }
-
+function cleanExcelText(value) {
+  return String(value ?? "")
+    .replace(/\r?\n/g, " ")
+    .replace(/\t/g, " ")
+    .trim();
+}
 function formatDateTime(v) {
   if (!v) return "";
 
