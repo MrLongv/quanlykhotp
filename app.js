@@ -12,6 +12,7 @@ const State = {
   locations: [],
   allLocations: [],
   stocks: [],
+  searchResults: [],
   selectedLocationId: null,
   token: localStorage.getItem("warehouse_token") || "",
   user: JSON.parse(localStorage.getItem("warehouse_user") || "null"),
