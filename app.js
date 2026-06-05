@@ -264,7 +264,8 @@ function bindEvents() {
 
   $("btnLogout")?.addEventListener("click", logout);
   $("btnRefresh")?.addEventListener("click", loadInitialData);
-  $("btnExportExcel")?.addEventListener("click", exportExcelLikeCsv);
+ $("btnExportExcel")?.addEventListener("click", () => exportExcelByArea(false));
+$("btnExportAllExcel")?.addEventListener("click", () => exportExcelByArea(true));
 
   $("btnOpenLogs")?.addEventListener("click", openLogsModal);
   $("btnCloseLogsModal")?.addEventListener("click", closeLogsModal);
@@ -1227,7 +1228,7 @@ State.stocks = await apiGet("/api/stocks");
    EXPORT Excel
 ========================= */
 
-async function exportExcelLikeCsv() {
+async function exportExcelByArea(exportAll = false) {
   if (typeof XLSX === "undefined") {
     toast("Chưa tải được thư viện Excel. Kiểm tra index.html.");
     return;
@@ -1240,12 +1241,10 @@ async function exportExcelLikeCsv() {
     const area2Locations = await apiGet("/api/locations?areaId=2");
     const allLocations = [...area1Locations, ...area2Locations];
 
+    console.log("Location mẫu:", allLocations[0]);
+
     const locationMap = new Map(
       allLocations.map((loc) => [Number(loc.id), loc])
-    );
-
-    const exportAll = confirm(
-      "OK = Xuất toàn bộ Kho TP + Lầu 6\nHỦY = Chỉ xuất khu vực đang xem"
     );
 
     const exportAreaId = exportAll ? 0 : Number(State.currentAreaId);
@@ -1258,9 +1257,9 @@ async function exportExcelLikeCsv() {
         return {
           stock: s,
           loc,
-          areaId: Number(loc?.area_id || 0),
-          rowNo: Number(loc?.row_no || 0),
-          levelNo: Number(loc?.level_no || 0),
+          areaId: Number(loc?.area_id || loc?.areaId || 0),
+          rowNo: Number(loc?.row_no || loc?.rowNo || 0),
+          levelNo: Number(loc?.level_no || loc?.levelNo || 0),
         };
       })
       .filter((x) => x.loc)
@@ -1275,22 +1274,26 @@ async function exportExcelLikeCsv() {
       });
 
     const data = exportRows.map(({ stock: s, loc }) => {
-      const isKTP = Number(loc.area_id) === 1;
+      const areaId = Number(loc.area_id || loc.areaId || 0);
+      const rowNo = Number(loc.row_no || loc.rowNo || 0);
+      const levelNo = Number(loc.level_no || loc.levelNo || 0);
+      const locationCode = loc.location_code || loc.locationCode || loc.code || "";
 
-      const levelText = isKTP
-        ? `Kệ ${loc.level_no}`
-        : `Ô ${String(loc.level_no).padStart(2, "0")}`;
+      const levelText =
+        areaId === 1
+          ? `Kệ ${levelNo}`
+          : `Ô ${String(levelNo).padStart(2, "0")}`;
 
       return {
-        "Khu vực": cleanExcelText(getAreaName(loc.area_id)),
-        "Mã vị trí": cleanExcelText(loc.location_code),
-        "Dãy": Number(loc.row_no),
+        "Khu vực": cleanExcelText(getAreaName(areaId)),
+        "Mã vị trí": cleanExcelText(locationCode),
+        "Dãy": rowNo,
         "Kệ/Ô": cleanExcelText(levelText),
-        "Mã hàng": cleanExcelText(s.style_code),
-        "PO": cleanExcelText(s.po_no),
+        "Mã hàng": cleanExcelText(s.style_code || s.styleCode),
+        "PO": cleanExcelText(s.po_no || s.poNo),
         "Màu": cleanExcelText(s.color),
         "Size": cleanExcelText(s.size),
-        "Số kiện": Number(s.carton_qty || 0),
+        "Số kiện": Number(s.carton_qty || s.cartonQty || 0),
         "Khách hàng": cleanExcelText(s.customer),
         "Ghi chú": cleanExcelText(s.note),
       };
@@ -1340,10 +1343,10 @@ async function exportExcelLikeCsv() {
         : `ton-kho-lau-6-${todayText()}.xlsx`;
 
     XLSX.writeFile(wb, fileName);
-
+    toast("Đã xuất Excel.");
   } catch (err) {
     console.error(err);
-    toast("Xuất Excel không thành công.");
+    toast(err.message || "Xuất Excel không thành công.");
   } finally {
     showLoading(false);
   }
