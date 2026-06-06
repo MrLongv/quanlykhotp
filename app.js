@@ -233,11 +233,17 @@ async function login() {
     localStorage.setItem("warehouse_token", State.token);
     localStorage.setItem("warehouse_user", JSON.stringify(State.user));
 
-    showApp();
-    renderUser();
-    await loadInitialData();
+   blurActiveInput();
 
-    toast("Đăng nhập thành công.");
+showApp();
+renderUser();
+await loadInitialData();
+
+setTimeout(() => {
+  blurActiveInput();
+}, 180);
+
+toast("Đăng nhập thành công.");
   } catch (err) {
     console.error(err);
     toast(err.message || "Đăng nhập không thành công.");
@@ -284,9 +290,15 @@ function showLogin() {
 }
 
 function showApp() {
+  blurActiveInput();
+
   $("loginScreen")?.classList.add("hidden");
   $("appShell")?.classList.remove("hidden");
   renderUser();
+
+  setTimeout(() => {
+    blurActiveInput();
+  }, 120);
 }
 
 function renderUser() {
@@ -1866,7 +1878,17 @@ function groupBy(arr, key) {
     return acc;
   }, {});
 }
+function blurActiveInput() {
+  try {
+    if (document.activeElement && typeof document.activeElement.blur === "function") {
+      document.activeElement.blur();
+    }
 
+    $("loginUsername")?.blur();
+    $("loginPassword")?.blur();
+    $("globalSearch")?.blur();
+  } catch {}
+}
 function clean(v) {
   return String(v || "").trim();
 }
