@@ -404,7 +404,7 @@ function bindEvents() {
       selectArea(areaId, areaCode, btn);
     });
   });
-
+setupBackTopButton();
 bindModalEvents();
 setupStockLocationPicker();
 setupQuickJump();
@@ -1836,7 +1836,33 @@ function writeExcelFile(data, sheetName, fileName) {
   XLSX.utils.book_append_sheet(wb, ws, sheetName);
   XLSX.writeFile(wb, fileName);
 }
+/* =========================
+   BACK TO TOP
+========================= */
 
+function setupBackTopButton() {
+  const btn = $("btnBackTop");
+  if (!btn) return;
+
+  window.addEventListener("scroll", () => {
+    if (window.scrollY > 450) {
+      btn.classList.remove("hidden");
+    } else {
+      btn.classList.add("hidden");
+    }
+  }, { passive: true });
+
+  btn.addEventListener("click", () => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+
+    setTimeout(() => {
+      $("jumpRow")?.focus();
+    }, 450);
+  });
+}
 /* =========================
    MODAL HELPERS
 ========================= */
