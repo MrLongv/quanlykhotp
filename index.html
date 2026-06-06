@@ -126,6 +126,7 @@
         <div class="sidebar-section">
           <div class="section-title"><span>Thao tác nhanh</span></div>
           <button class="quick-btn" id="btnOpenAddStock">+ Thêm hàng vào vị trí</button>
+          <button class="quick-btn pending-btn" id="btnOpenPendingTransfers">Hàng chờ nhập</button>
           <button class="quick-btn" id="btnAddSlot">+ Thêm ô mới</button>
           <button class="quick-btn" id="btnAddRow">+ Thêm dãy mới</button>
           <button class="quick-btn" id="btnShowEmpty">Xem vị trí trống</button>
@@ -553,6 +554,93 @@
 <button class="back-top-btn hidden" id="btnBackTop" title="Về đầu trang">
   ↑
 </button>
+  <!-- MODAL: PENDING TRANSFERS -->
+<div class="modal-backdrop hidden" id="pendingTransferModal">
+  <div class="modal large">
+    <div class="modal-header">
+      <div>
+        <h3>Hàng chờ nhập vị trí</h3>
+        <p>Danh sách hàng đã kéo ra khỏi vị trí cũ và đang chờ nhập vị trí mới</p>
+      </div>
+      <button class="icon-btn" id="btnClosePendingTransferModal">×</button>
+    </div>
+
+    <div class="modal-body">
+      <div id="pendingTransferContent">
+        <div class="empty-state">Chưa có hàng chờ nhập.</div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn ghost" id="btnClosePendingTransfer">Đóng</button>
+      <button class="btn primary" id="btnReloadPendingTransfer">Tải lại</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: COMPLETE TRANSFER -->
+<div class="modal-backdrop hidden" id="completeTransferModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h3>Nhập hàng vào vị trí mới</h3>
+        <p>Chọn đúng vị trí thực tế vừa đưa hàng vào</p>
+      </div>
+      <button class="icon-btn" id="btnCloseCompleteTransferModal">×</button>
+    </div>
+
+    <div class="modal-body">
+      <input type="hidden" id="completeTransferId" />
+      <input type="hidden" id="completeTransferLocation" />
+
+      <div class="info-box" id="completeTransferInfo"></div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Khu vực</label>
+          <select id="completeTransferArea">
+            <option value="1">Kho thành phẩm</option>
+            <option value="2">Lầu 6</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Dãy</label>
+          <select id="completeTransferRow">
+            <option value="">Chọn dãy</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="completeTransferShelfGroup">
+          <label>Kệ</label>
+          <select id="completeTransferShelf">
+            <option value="">Chọn kệ</option>
+            <option value="1">Kệ 1</option>
+            <option value="2">Kệ 2</option>
+            <option value="3">Kệ 3</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Ô</label>
+          <select id="completeTransferSlot">
+            <option value="">Chọn ô</option>
+          </select>
+        </div>
+
+        <div class="form-group full">
+          <label>Ghi chú</label>
+          <textarea id="completeTransferNote" rows="3" placeholder="VD: Nhập lên lầu 6, gom theo PO..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn ghost" id="btnCancelCompleteTransfer">Hủy</button>
+      <button class="btn primary" id="btnConfirmCompleteTransfer">Xác nhận nhập</button>
+    </div>
+  </div>
+</div>
   <!-- TOAST -->
   <div class="toast hidden" id="toast">
     <span id="toastText">Đã lưu</span>
