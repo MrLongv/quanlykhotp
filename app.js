@@ -29,6 +29,7 @@ const State = {
   allLocations: [],
   stocks: [],
   searchResults: [],
+  pendingTransfers: [],
   selectedLocationId: null,
   token: localStorage.getItem("warehouse_token") || "",
   user: readSavedUser(),
@@ -190,6 +191,7 @@ async function loadInitialData() {
     State.allLocations = [...area1Locations, ...area2Locations];
 
     State.stocks = await apiGet("/api/stocks");
+    await loadPendingTransfersSilent();
 
     renderAll();
     applyPermissionUI();
@@ -233,17 +235,17 @@ async function login() {
     localStorage.setItem("warehouse_token", State.token);
     localStorage.setItem("warehouse_user", JSON.stringify(State.user));
 
-   blurActiveInput();
+    blurActiveInput();
 
-showApp();
-renderUser();
-await loadInitialData();
+    showApp();
+    renderUser();
+    await loadInitialData();
 
-setTimeout(() => {
-  blurActiveInput();
-}, 180);
+    setTimeout(() => {
+      blurActiveInput();
+    }, 180);
 
-toast("Đăng nhập thành công.");
+    toast("Đăng nhập thành công.");
   } catch (err) {
     console.error(err);
     toast(err.message || "Đăng nhập không thành công.");
@@ -327,6 +329,7 @@ function applyPermissionUI() {
   if ($("btnAddSlot")) $("btnAddSlot").style.display = admin ? "" : "none";
   if ($("btnOpenAddStock")) $("btnOpenAddStock").style.display = editable ? "" : "none";
   if ($("btnOpenLogs")) $("btnOpenLogs").style.display = admin ? "" : "none";
+  if ($("btnOpenPendingTransfers")) $("btnOpenPendingTransfers").style.display = editable ? "" : "none";
 }
 
 /* =========================
@@ -404,10 +407,12 @@ function bindEvents() {
       selectArea(areaId, areaCode, btn);
     });
   });
-setupBackTopButton();
-bindModalEvents();
-setupStockLocationPicker();
-setupQuickJump();
+
+  setupBackTopButton();
+  bindModalEvents();
+  setupStockLocationPicker();
+  setupCompleteTransferPicker();
+  setupQuickJump();
 }
 
 function bindModalEvents() {
@@ -445,6 +450,15 @@ function bindModalEvents() {
   $("btnClosePartialExportModal")?.addEventListener("click", closePartialExportModal);
   $("btnCancelPartialExport")?.addEventListener("click", closePartialExportModal);
   $("btnConfirmPartialExport")?.addEventListener("click", confirmPartialExport);
+
+  $("btnOpenPendingTransfers")?.addEventListener("click", openPendingTransferModal);
+  $("btnClosePendingTransferModal")?.addEventListener("click", closePendingTransferModal);
+  $("btnClosePendingTransfer")?.addEventListener("click", closePendingTransferModal);
+  $("btnReloadPendingTransfer")?.addEventListener("click", loadPendingTransfers);
+
+  $("btnCloseCompleteTransferModal")?.addEventListener("click", closeCompleteTransferModal);
+  $("btnCancelCompleteTransfer")?.addEventListener("click", closeCompleteTransferModal);
+  $("btnConfirmCompleteTransfer")?.addEventListener("click", confirmCompleteTransfer);
 }
 
 /* =========================
@@ -484,6 +498,7 @@ function renderAll() {
   renderSummary();
   renderLocations();
   renderTable();
+  renderPendingBadge();
 }
 
 function renderHeader() {
@@ -522,6 +537,14 @@ function renderSummary() {
       0
     );
   }
+}
+
+function renderPendingBadge() {
+  const btn = $("btnOpenPendingTransfers");
+  if (!btn) return;
+
+  const count = (State.pendingTransfers || []).length;
+  btn.textContent = count > 0 ? `Hàng chờ nhập (${count})` : "Hàng chờ nhập";
 }
 
 function renderLocations() {
@@ -713,6 +736,7 @@ function renderTable() {
         ? `
           <button class="link-btn" onclick="editStockFromAnyModal(${s.id})">Sửa</button>
           <button class="link-btn" onclick="openMoveModal(${s.id})">Chuyển</button>
+          <button class="link-btn transfer" onclick="createTransferTicket(${s.id})">Tạo phiếu chuyển</button>
           <button class="link-btn" onclick="openPartialExportModal(${s.id})">Xuất một phần</button>
           <button class="link-btn danger" onclick="markExported(${s.id})">Xuất hết</button>
         `
@@ -796,6 +820,7 @@ function renderSearchResults(results) {
         ? `
           <button class="link-btn" onclick="openDetailModal(${s.location_id})">Xem vị trí</button>
           <button class="link-btn" onclick="editStockFromAnyModal(${s.id})">Sửa</button>
+          <button class="link-btn transfer" onclick="createTransferTicket(${s.id})">Tạo phiếu chuyển</button>
           <button class="link-btn" onclick="openPartialExportModal(${s.id})">Xuất một phần</button>
           <button class="link-btn danger" onclick="markExported(${s.id})">Xuất hết</button>
         `
@@ -825,6 +850,7 @@ function clearSearch() {
   $("searchResultPanel")?.classList.add("hidden");
   State.searchResults = [];
 }
+
 /* =========================
    QUICK JUMP ROW
 ========================= */
@@ -914,6 +940,7 @@ async function jumpToSelectedRow() {
     showLoading(false);
   }
 }
+
 /* =========================
    STOCK LOCATION PICKER
 ========================= */
@@ -1445,6 +1472,7 @@ function openDetailModal(locationId) {
                 ? `
                   <button class="link-btn" onclick="editStockFromAnyModal(${s.id})">Sửa</button>
                   <button class="link-btn" onclick="openMoveModal(${s.id})">Chuyển</button>
+                  <button class="link-btn transfer" onclick="createTransferTicket(${s.id})">Tạo phiếu chuyển</button>
                   <button class="link-btn" onclick="openPartialExportModal(${s.id})">Xuất một phần</button>
                   <button class="link-btn danger" onclick="markExported(${s.id})">Xuất hết</button>
                 `
@@ -1582,6 +1610,358 @@ async function markExported(stockId) {
 }
 
 /* =========================
+   TRANSFER PENDING
+========================= */
+
+async function loadPendingTransfersSilent() {
+  try {
+    State.pendingTransfers = await apiGet("/api/transfers/pending");
+  } catch (err) {
+    console.warn("Không tải được hàng chờ nhập:", err);
+    State.pendingTransfers = [];
+  }
+}
+
+async function loadPendingTransfers() {
+  try {
+    showLoading(true);
+    State.pendingTransfers = await apiGet("/api/transfers/pending");
+    renderPendingTransfers();
+    renderPendingBadge();
+  } catch (err) {
+    console.error(err);
+    toast(err.message || "Không tải được hàng chờ nhập.");
+  } finally {
+    showLoading(false);
+  }
+}
+
+async function createTransferTicket(stockId) {
+  if (!canEdit()) return toast("Bạn không có quyền tạo phiếu chuyển.");
+
+  const s = State.stocks.find((x) => Number(x.id) === Number(stockId));
+  if (!s) return toast("Không tìm thấy hàng.");
+
+  const loc = normalizeLocationParts(getLocationById(s.location_id) || s);
+  if (!loc) return toast("Không tìm thấy vị trí hàng.");
+
+  const defaultTarget = Number(loc.area_id) === 1 ? 2 : 1;
+  const targetAreaText = defaultTarget === 2 ? "Lầu 6" : "Kho thành phẩm";
+
+  const ok = confirm(
+    `Tạo phiếu chuyển hàng này đến ${targetAreaText}?\n\n` +
+      `Mã hàng: ${s.style_code}\n` +
+      `PO: ${s.po_no}\n` +
+      `Số kiện: ${Number(s.carton_qty || 0)}\n` +
+      `Từ vị trí: ${loc.location_code || s.location_code || ""}`
+  );
+
+  if (!ok) return;
+
+  try {
+    showLoading(true);
+
+    await apiPost("/api/transfers/create", {
+      stock_id: stockId,
+      target_area_id: defaultTarget,
+      note: `Chờ chuyển từ ${loc.location_code || ""} đến ${targetAreaText}`,
+    });
+
+    toast("Đã tạo phiếu chuyển.");
+    closeAllModals();
+
+    await reloadStocksAndLocations();
+    await loadPendingTransfers();
+  } catch (err) {
+    console.error(err);
+    toast(err.message || "Không tạo được phiếu chuyển.");
+  } finally {
+    showLoading(false);
+  }
+}
+
+function openPendingTransferModal() {
+  if (!canEdit()) return toast("Bạn không có quyền xem hàng chờ nhập.");
+
+  closeAllModals();
+
+  $("pendingTransferModal")?.classList.remove("hidden");
+  lockBodyScroll();
+
+  renderPendingTransfers();
+}
+
+function closePendingTransferModal() {
+  $("pendingTransferModal")?.classList.add("hidden");
+  unlockBodyScroll();
+}
+
+function renderPendingTransfers() {
+  const box = $("pendingTransferContent");
+  if (!box) return;
+
+  const rows = State.pendingTransfers || [];
+
+  if (!rows.length) {
+    box.innerHTML = `<div class="empty-state">Chưa có hàng chờ nhập.</div>`;
+    return;
+  }
+
+  box.innerHTML = `
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Hàng</th>
+            <th>Từ vị trí</th>
+            <th>Đích</th>
+            <th>Số kiện</th>
+            <th>Người tạo</th>
+            <th>Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows
+            .map(
+              (t) => `
+              <tr>
+                <td>
+                  <strong>${esc(t.style_code)}</strong>
+                  <div class="muted-text">PO: ${esc(t.po_no)}</div>
+                  <div class="muted-text">${esc(t.color || "")} ${esc(t.size || "")}</div>
+                </td>
+                <td>${esc(t.from_location_code || "")}</td>
+                <td>${esc(t.target_area_name || "")}</td>
+                <td>${Number(t.carton_qty || 0)}</td>
+                <td>
+                  ${esc(t.created_by || "")}
+                  <div class="muted-text">${esc(formatDateTime(t.created_at))}</div>
+                </td>
+                <td>
+                  <button class="link-btn transfer" onclick="openCompleteTransferModal(${t.id})">
+                    Nhập vào vị trí
+                  </button>
+                </td>
+              </tr>
+            `
+            )
+            .join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function openCompleteTransferModal(transferId) {
+  const t = (State.pendingTransfers || []).find((x) => Number(x.id) === Number(transferId));
+  if (!t) return toast("Không tìm thấy phiếu chuyển.");
+
+  $("completeTransferModal")?.classList.remove("hidden");
+  lockBodyScroll();
+
+  $("completeTransferId").value = t.id;
+  $("completeTransferArea").value = String(t.target_area_id);
+  $("completeTransferLocation").value = "";
+  $("completeTransferNote").value = "";
+
+  $("completeTransferInfo").innerHTML = `
+    <strong>${esc(t.style_code)} - PO ${esc(t.po_no)}</strong>
+    <p>Từ vị trí: ${esc(t.from_location_code || "")}</p>
+    <p>Đích: ${esc(t.target_area_name || "")}</p>
+    <p>Số kiện: <b>${Number(t.carton_qty || 0)}</b></p>
+  `;
+
+  resetCompleteTransferPicker();
+  buildCompleteTransferRows();
+  toggleCompleteTransferShelf();
+}
+
+function closeCompleteTransferModal() {
+  $("completeTransferModal")?.classList.add("hidden");
+  unlockBodyScroll();
+}
+
+async function confirmCompleteTransfer() {
+  const transferId = Number($("completeTransferId")?.value || 0);
+
+  resolveCompleteTransferLocationId();
+
+  const locationId = Number($("completeTransferLocation")?.value || 0);
+  const note = clean($("completeTransferNote")?.value || "");
+
+  if (!transferId) return toast("Thiếu phiếu chuyển.");
+  if (!locationId) return toast("Vui lòng chọn đủ vị trí nhập mới.");
+
+  try {
+    showLoading(true);
+
+    await apiPost(`/api/transfers/${transferId}/complete`, {
+      location_id: locationId,
+      note,
+    });
+
+    toast("Đã nhập hàng vào vị trí mới.");
+
+    closeAllModals();
+    await reloadStocksAndLocations();
+    await loadPendingTransfers();
+  } catch (err) {
+    console.error(err);
+    toast(err.message || "Không nhập được hàng.");
+  } finally {
+    showLoading(false);
+  }
+}
+
+/* =========================
+   COMPLETE TRANSFER PICKER
+========================= */
+
+function setupCompleteTransferPicker() {
+  $("completeTransferArea")?.addEventListener("change", () => {
+    resetCompleteTransferPicker();
+    buildCompleteTransferRows();
+    toggleCompleteTransferShelf();
+  });
+
+  $("completeTransferRow")?.addEventListener("change", () => {
+    buildCompleteTransferSlots();
+    resolveCompleteTransferLocationId();
+  });
+
+  $("completeTransferShelf")?.addEventListener("change", () => {
+    buildCompleteTransferSlots();
+    resolveCompleteTransferLocationId();
+  });
+
+  $("completeTransferSlot")?.addEventListener("change", () => {
+    resolveCompleteTransferLocationId();
+  });
+}
+
+function resetCompleteTransferPicker() {
+  if ($("completeTransferRow")) {
+    $("completeTransferRow").innerHTML = `<option value="">Chọn dãy</option>`;
+  }
+
+  if ($("completeTransferShelf")) {
+    $("completeTransferShelf").value = "";
+  }
+
+  if ($("completeTransferSlot")) {
+    $("completeTransferSlot").innerHTML = `<option value="">Chọn ô</option>`;
+  }
+
+  if ($("completeTransferLocation")) {
+    $("completeTransferLocation").value = "";
+  }
+}
+
+function buildCompleteTransferRows() {
+  const areaId = Number($("completeTransferArea")?.value || 1);
+  const rowSelect = $("completeTransferRow");
+  if (!rowSelect) return;
+
+  const rows = [
+    ...new Set(
+      State.allLocations
+        .filter((loc) => Number(loc.area_id) === areaId)
+        .map((loc) => Number(loc.row_no))
+        .filter(Boolean)
+    ),
+  ].sort((a, b) => a - b);
+
+  rowSelect.innerHTML = `<option value="">Chọn dãy</option>`;
+
+  rows.forEach((rowNo) => {
+    rowSelect.insertAdjacentHTML(
+      "beforeend",
+      `<option value="${rowNo}">Dãy ${String(rowNo).padStart(2, "0")}</option>`
+    );
+  });
+}
+
+function toggleCompleteTransferShelf() {
+  const areaId = Number($("completeTransferArea")?.value || 1);
+  const group = $("completeTransferShelfGroup");
+
+  if (group) group.style.display = areaId === 1 ? "" : "none";
+
+  if (areaId !== 1 && $("completeTransferShelf")) {
+    $("completeTransferShelf").value = "";
+  }
+}
+
+function buildCompleteTransferSlots() {
+  const areaId = Number($("completeTransferArea")?.value || 1);
+  const rowNo = Number($("completeTransferRow")?.value || 0);
+  const shelfNo = Number($("completeTransferShelf")?.value || 0);
+  const slotSelect = $("completeTransferSlot");
+
+  if (!slotSelect) return;
+
+  slotSelect.innerHTML = `<option value="">Chọn ô</option>`;
+
+  if (!rowNo) return;
+  if (areaId === 1 && !shelfNo) return;
+
+  const slots = State.allLocations
+    .map((loc) => normalizeLocationParts(loc))
+    .filter((loc) => {
+      if (Number(loc.area_id) !== areaId) return false;
+      if (Number(loc.row_no) !== rowNo) return false;
+
+      if (areaId === 1) {
+        return Number(loc.shelf_no) === shelfNo;
+      }
+
+      return true;
+    })
+    .map((loc) => Number(loc.slot_no))
+    .filter(Boolean)
+    .sort((a, b) => a - b);
+
+  slots.forEach((slotNo) => {
+    slotSelect.insertAdjacentHTML(
+      "beforeend",
+      `<option value="${slotNo}">Ô ${String(slotNo).padStart(2, "0")}</option>`
+    );
+  });
+}
+
+function resolveCompleteTransferLocationId() {
+  const areaId = Number($("completeTransferArea")?.value || 1);
+  const rowNo = Number($("completeTransferRow")?.value || 0);
+  const shelfNo = Number($("completeTransferShelf")?.value || 0);
+  const slotNo = Number($("completeTransferSlot")?.value || 0);
+
+  if ($("completeTransferLocation")) {
+    $("completeTransferLocation").value = "";
+  }
+
+  if (!areaId || !rowNo || !slotNo) return;
+  if (areaId === 1 && !shelfNo) return;
+
+  const found = State.allLocations
+    .map((loc) => normalizeLocationParts(loc))
+    .find((loc) => {
+      if (Number(loc.area_id) !== areaId) return false;
+      if (Number(loc.row_no) !== rowNo) return false;
+      if (Number(loc.slot_no) !== slotNo) return false;
+
+      if (areaId === 1) {
+        return Number(loc.shelf_no) === shelfNo;
+      }
+
+      return true;
+    });
+
+  if (found && $("completeTransferLocation")) {
+    $("completeTransferLocation").value = found.id;
+  }
+}
+
+/* =========================
    LOGS
 ========================= */
 
@@ -1694,6 +2074,7 @@ async function reloadStocksAndLocations() {
   State.allLocations = [...area1Locations, ...area2Locations];
 
   State.stocks = await apiGet("/api/stocks");
+  await loadPendingTransfersSilent();
 
   renderAll();
   applyPermissionUI();
@@ -1836,6 +2217,7 @@ function writeExcelFile(data, sheetName, fileName) {
   XLSX.utils.book_append_sheet(wb, ws, sheetName);
   XLSX.writeFile(wb, fileName);
 }
+
 /* =========================
    BACK TO TOP
 ========================= */
@@ -1844,25 +2226,45 @@ function setupBackTopButton() {
   const btn = $("btnBackTop");
   if (!btn) return;
 
-  window.addEventListener("scroll", () => {
-    if (window.scrollY > 450) {
+  const updateBackTop = () => {
+    const y = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+
+    if (y > 360) {
       btn.classList.remove("hidden");
     } else {
       btn.classList.add("hidden");
     }
-  }, { passive: true });
+  };
+
+  window.addEventListener("scroll", updateBackTop, { passive: true });
+  document.addEventListener("scroll", updateBackTop, { passive: true });
 
   btn.addEventListener("click", () => {
+    btn.classList.add("hidden");
+
     window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+
+    document.documentElement.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+
+    document.body.scrollTo({
       top: 0,
       behavior: "smooth",
     });
 
     setTimeout(() => {
       $("jumpRow")?.focus();
-    }, 450);
+    }, 500);
   });
+
+  updateBackTop();
 }
+
 /* =========================
    MODAL HELPERS
 ========================= */
@@ -1875,6 +2277,8 @@ function closeAllModals() {
   $("slotModal")?.classList.add("hidden");
   $("partialExportModal")?.classList.add("hidden");
   $("logsModal")?.classList.add("hidden");
+  $("pendingTransferModal")?.classList.add("hidden");
+  $("completeTransferModal")?.classList.add("hidden");
 
   State.selectedLocationId = null;
   unlockBodyScroll(true);
@@ -1993,6 +2397,7 @@ function groupBy(arr, key) {
     return acc;
   }, {});
 }
+
 function blurActiveInput() {
   try {
     if (document.activeElement && typeof document.activeElement.blur === "function") {
@@ -2004,6 +2409,7 @@ function blurActiveInput() {
     $("globalSearch")?.blur();
   } catch {}
 }
+
 function clean(v) {
   return String(v || "").trim();
 }
@@ -2075,3 +2481,5 @@ window.openDetailModal = openDetailModal;
 window.openPartialExportModal = openPartialExportModal;
 window.markExported = markExported;
 window.editStockFromAnyModal = editStockFromAnyModal;
+window.createTransferTicket = createTransferTicket;
+window.openCompleteTransferModal = openCompleteTransferModal;
