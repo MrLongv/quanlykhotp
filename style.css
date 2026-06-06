@@ -1823,3 +1823,23 @@ button:disabled{
     font-size:12px !important;
   }
 }
+/* =========================
+   FIX MOBILE MODAL SCROLL
+========================= */
+
+body.modal-open{
+  overflow:hidden !important;
+  height:100vh !important;
+  touch-action:none !important;
+}
+
+body.modal-open .modal-backdrop{
+  overscroll-behavior:contain !important;
+  touch-action:none !important;
+}
+
+body.modal-open .modal{
+  touch-action:auto !important;
+  overscroll-behavior:contain !important;
+  -webkit-overflow-scrolling:touch !important;
+}
