@@ -1618,3 +1618,47 @@ button:disabled{
     min-height:40px !important;
   }
 }
+/* =========================
+   FIX EMPTY SLOT TEXT
+========================= */
+
+.shelf-empty{
+  min-height:54px !important;
+  height:auto !important;
+  padding:10px 6px !important;
+  border-radius:12px !important;
+  font-size:15px !important;
+  line-height:1 !important;
+  letter-spacing:.06em !important;
+  text-align:center !important;
+}
+
+.shelf-content{
+  padding:8px !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+}
+
+.shelf-box{
+  min-height:138px !important;
+}
+
+.shelf-top strong{
+  font-size:15px !important;
+}
+
+.shelf-top span{
+  font-size:10px !important;
+}
+
+@media(max-width:768px){
+  .shelf-empty{
+    font-size:14px !important;
+    min-height:48px !important;
+  }
+
+  .shelf-box{
+    min-height:128px !important;
+  }
+}
