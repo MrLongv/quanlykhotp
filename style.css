@@ -1786,3 +1786,30 @@ textarea{
     font-size:22px !important;
   }
 }
+/* =========================
+   TRANSFER PENDING
+========================= */
+
+.pending-btn{
+  border-color:rgba(245,158,11,.35) !important;
+  color:#fde68a !important;
+}
+
+.link-btn.transfer{
+  color:#fde68a;
+  background:rgba(245,158,11,.12);
+  border-color:rgba(245,158,11,.32);
+}
+
+.link-btn.transfer:hover{
+  background:rgba(245,158,11,.22);
+  color:#fff;
+}
+
+#pendingTransferContent .data-table td{
+  vertical-align:middle;
+}
+
+#completeTransferInfo b{
+  color:#fff;
+}
