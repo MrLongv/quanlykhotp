@@ -1843,3 +1843,256 @@ body.modal-open .modal{
   overscroll-behavior:contain !important;
   -webkit-overflow-scrolling:touch !important;
 }
+/* =========================================================
+   PROFESSIONAL HEADER + SIDEBAR OVERRIDE
+========================================================= */
+
+/* Nền tổng thể bớt xanh gắt */
+body{
+  background:
+    radial-gradient(circle at top left, rgba(37,99,235,.18), transparent 28%),
+    linear-gradient(180deg,#0b1220 0%,#0f172a 100%) !important;
+}
+
+/* Header gọn, dạng thanh dashboard */
+.app-header{
+  min-height:auto !important;
+  padding:14px 18px !important;
+  border-radius:18px !important;
+  background:rgba(15,23,42,.94) !important;
+  border:1px solid rgba(148,163,184,.18) !important;
+  display:grid !important;
+  grid-template-columns:1fr auto !important;
+  align-items:center !important;
+  gap:18px !important;
+}
+
+.header-left{
+  gap:12px !important;
+}
+
+.app-logo{
+  width:44px !important;
+  height:44px !important;
+  flex-basis:44px !important;
+  border-radius:14px !important;
+  box-shadow:none !important;
+}
+
+.app-header h1{
+  font-size:17px !important;
+  font-weight:800 !important;
+  letter-spacing:-.02em !important;
+}
+
+.app-header p{
+  font-size:12px !important;
+  margin-top:4px !important;
+  color:#94a3b8 !important;
+}
+
+/* Gom nút thành cụm gọn */
+.header-actions{
+  display:grid !important;
+  grid-template-columns:110px 110px !important;
+  gap:8px !important;
+}
+
+.user-box{
+  grid-column:1 / -1 !important;
+  width:100% !important;
+  min-height:40px !important;
+  padding:6px 10px !important;
+  border-radius:13px !important;
+  background:#0f172a !important;
+  border:1px solid rgba(148,163,184,.2) !important;
+  align-items:center !important;
+}
+
+.user-box strong{
+  font-size:13px !important;
+}
+
+.user-box span{
+  font-size:11px !important;
+  color:#38bdf8 !important;
+}
+
+/* Nút ít màu hơn, chuyên nghiệp hơn */
+.header-actions .btn{
+  min-height:38px !important;
+  border-radius:12px !important;
+  font-size:13px !important;
+  padding:0 10px !important;
+  box-shadow:none !important;
+}
+
+#btnOpenLogs,
+#btnRefresh,
+#btnExportExcel,
+#btnExportAllExcel{
+  background:#1e293b !important;
+  color:#e2e8f0 !important;
+  border:1px solid rgba(148,163,184,.18) !important;
+}
+
+#btnOpenLogs:hover,
+#btnRefresh:hover,
+#btnExportExcel:hover,
+#btnExportAllExcel:hover{
+  background:#334155 !important;
+}
+
+#btnLogout{
+  background:#dc2626 !important;
+  color:#fff !important;
+}
+
+/* Sidebar chuyên nghiệp hơn */
+.sidebar{
+  background:rgba(15,23,42,.95) !important;
+  border:1px solid rgba(148,163,184,.18) !important;
+  border-radius:18px !important;
+  padding:14px !important;
+  box-shadow:none !important;
+}
+
+.section-title{
+  font-size:11px !important;
+  color:#94a3b8 !important;
+  letter-spacing:.08em !important;
+  margin-bottom:8px !important;
+}
+
+/* Khu vực dạng menu */
+.area-list{
+  gap:8px !important;
+}
+
+.area-item{
+  min-height:62px !important;
+  border-radius:14px !important;
+  background:#0b1220 !important;
+  border:1px solid rgba(148,163,184,.14) !important;
+  padding:10px !important;
+}
+
+.area-item.active{
+  background:#10213a !important;
+  border-color:#38bdf8 !important;
+  box-shadow:inset 3px 0 0 #38bdf8 !important;
+}
+
+.area-icon{
+  width:34px !important;
+  height:34px !important;
+  flex-basis:34px !important;
+  border-radius:11px !important;
+  background:#0ea5e9 !important;
+}
+
+.area-item strong{
+  font-size:13px !important;
+}
+
+.area-item small{
+  color:#94a3b8 !important;
+  font-size:11px !important;
+}
+
+/* Thao tác nhanh giống menu button */
+.quick-btn{
+  min-height:40px !important;
+  border-radius:13px !important;
+  background:#0b1220 !important;
+  border:1px solid rgba(148,163,184,.14) !important;
+  color:#cbd5e1 !important;
+  font-size:13px !important;
+  padding:0 12px !important;
+  margin-bottom:7px !important;
+}
+
+.quick-btn:hover{
+  background:#1e293b !important;
+  color:#fff !important;
+}
+
+/* Gợi ý sử dụng gọn lại */
+.sidebar-note{
+  background:#0b1220 !important;
+  border:1px dashed rgba(148,163,184,.22) !important;
+  border-radius:14px !important;
+  padding:12px !important;
+}
+
+.sidebar-note strong{
+  font-size:12px !important;
+}
+
+.sidebar-note p{
+  font-size:11px !important;
+  line-height:1.45 !important;
+}
+
+/* Mobile: header thành card gọn */
+@media(max-width:768px){
+  .app-header{
+    grid-template-columns:1fr !important;
+    padding:12px !important;
+    gap:10px !important;
+  }
+
+  .app-logo{
+    width:38px !important;
+    height:38px !important;
+    flex-basis:38px !important;
+  }
+
+  .app-header h1{
+    font-size:15px !important;
+  }
+
+  .app-header p{
+    font-size:11px !important;
+  }
+
+  .header-actions{
+    grid-template-columns:1fr 1fr !important;
+    gap:7px !important;
+  }
+
+  .user-box{
+    grid-column:1 / -1 !important;
+    min-height:36px !important;
+    align-items:flex-start !important;
+  }
+
+  .header-actions .btn{
+    min-height:36px !important;
+    font-size:12px !important;
+  }
+
+  #btnLogout{
+    grid-column:1 / -1 !important;
+  }
+
+  .sidebar{
+    padding:10px !important;
+  }
+
+  .area-list{
+    grid-template-columns:1fr 1fr !important;
+  }
+
+  .area-item{
+    min-height:56px !important;
+  }
+
+  .quick-btn{
+    min-height:36px !important;
+  }
+
+  .sidebar-note{
+    display:none !important;
+  }
+}
