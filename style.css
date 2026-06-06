@@ -1740,3 +1740,44 @@ textarea{
     min-height:38px;
   }
 }
+#btnJumpRow{
+  display:none;
+}
+/* =========================
+   BACK TO TOP BUTTON
+========================= */
+
+.back-top-btn{
+  position:fixed;
+  right:18px;
+  bottom:calc(20px + var(--safe-bottom));
+  z-index:70;
+
+  width:48px;
+  height:48px;
+  border:1px solid rgba(148,163,184,.28);
+  border-radius:999px;
+
+  background:linear-gradient(135deg,#2563eb,#0ea5e9);
+  color:#fff;
+  font-size:22px;
+  font-weight:900;
+
+  box-shadow:0 14px 35px rgba(0,0,0,.38);
+  display:grid;
+  place-items:center;
+}
+
+.back-top-btn:active{
+  transform:scale(.96);
+}
+
+@media(max-width:640px){
+  .back-top-btn{
+    right:12px;
+    bottom:calc(14px + var(--safe-bottom));
+    width:44px;
+    height:44px;
+    font-size:20px;
+  }
+}
