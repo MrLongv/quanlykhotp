@@ -405,8 +405,9 @@ function bindEvents() {
     });
   });
 
-  bindModalEvents();
-  setupStockLocationPicker();
+bindModalEvents();
+setupStockLocationPicker();
+setupQuickJump();
 }
 
 function bindModalEvents() {
@@ -559,7 +560,7 @@ function renderKtpLocations(grid, locations) {
       const groupedShelf = groupBy(rowLocations, "shelf_no");
 
       return `
-        <div class="warehouse-row-map">
+        <div class="warehouse-row-map" data-row-jump="1-${Number(rowNo)}">
           <div class="warehouse-row-title">
             <div>
               <span class="row-badge">DÃY ${String(rowNo).padStart(2, "0")}</span>
@@ -604,7 +605,7 @@ function renderL6Locations(grid, locations) {
       const rowLocations = grouped[rowNo].sort(sortLocationByPosition);
 
       return `
-        <div class="warehouse-row-map">
+        <div class="warehouse-row-map" data-row-jump="2-${Number(rowNo)}">
           <div class="warehouse-row-title">
             <div>
               <span class="row-badge">DÃY ${String(rowNo).padStart(2, "0")}</span>
@@ -824,7 +825,95 @@ function clearSearch() {
   $("searchResultPanel")?.classList.add("hidden");
   State.searchResults = [];
 }
+/* =========================
+   QUICK JUMP ROW
+========================= */
 
+function setupQuickJump() {
+  buildJumpRows();
+
+  $("jumpArea")?.addEventListener("change", () => {
+    buildJumpRows();
+  });
+
+  $("btnJumpRow")?.addEventListener("click", jumpToSelectedRow);
+
+  $("jumpRow")?.addEventListener("change", () => {
+    jumpToSelectedRow();
+  });
+}
+
+function buildJumpRows() {
+  const areaId = Number($("jumpArea")?.value || State.currentAreaId || 1);
+  const rowSelect = $("jumpRow");
+  if (!rowSelect) return;
+
+  rowSelect.innerHTML = `<option value="">Chọn dãy</option>`;
+
+  const maxRow = areaId === 1 ? 20 : 5;
+
+  for (let i = 1; i <= maxRow; i++) {
+    rowSelect.insertAdjacentHTML(
+      "beforeend",
+      `<option value="${i}">Dãy ${String(i).padStart(2, "0")}</option>`
+    );
+  }
+}
+
+async function jumpToSelectedRow() {
+  const areaId = Number($("jumpArea")?.value || 1);
+  const rowNo = Number($("jumpRow")?.value || 0);
+
+  if (!rowNo) return toast("Vui lòng chọn dãy cần xem.");
+
+  try {
+    showLoading(true);
+
+    if (Number(State.currentAreaId) !== areaId) {
+      State.currentAreaId = areaId;
+      State.currentAreaCode = areaId === 1 ? "KTP" : "L6";
+      State.currentAreaName = areaId === 1 ? "Kho thành phẩm" : "Lầu 6";
+      State.filterMode = "all";
+
+      document.querySelectorAll(".area-item").forEach((btn) => {
+        btn.classList.toggle(
+          "active",
+          Number(btn.dataset.areaId) === areaId
+        );
+      });
+
+      State.locations = await apiGet(`/api/locations?areaId=${areaId}`);
+      renderAll();
+      applyPermissionUI();
+    }
+
+    setTimeout(() => {
+      const target = document.querySelector(`[data-row-jump="${areaId}-${rowNo}"]`);
+
+      if (!target) {
+        toast(`Không tìm thấy Dãy ${rowNo}.`);
+        return;
+      }
+
+      target.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+
+      target.classList.add("row-highlight");
+
+      setTimeout(() => {
+        target.classList.remove("row-highlight");
+      }, 1800);
+    }, 120);
+
+  } catch (err) {
+    console.error(err);
+    toast("Không nhảy tới dãy được.");
+  } finally {
+    showLoading(false);
+  }
+}
 /* =========================
    STOCK LOCATION PICKER
 ========================= */
