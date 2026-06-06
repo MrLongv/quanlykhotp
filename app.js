@@ -7,6 +7,8 @@ const L6_DEFAULT_SLOTS_PER_ROW = 20;
 
 const $ = (id) => document.getElementById(id);
 
+let BODY_SCROLL_Y = 0;
+
 function readSavedUser() {
   try {
     return JSON.parse(localStorage.getItem("warehouse_user") || "null");
@@ -31,6 +33,43 @@ const State = {
   token: localStorage.getItem("warehouse_token") || "",
   user: readSavedUser(),
 };
+
+/* =========================
+   BODY SCROLL LOCK
+========================= */
+
+function isAnyModalOpen() {
+  return Array.from(document.querySelectorAll(".modal-backdrop")).some(
+    (el) => !el.classList.contains("hidden")
+  );
+}
+
+function lockBodyScroll() {
+  if (document.body.classList.contains("modal-open")) return;
+
+  BODY_SCROLL_Y = window.scrollY || document.documentElement.scrollTop || 0;
+
+  document.body.classList.add("modal-open");
+  document.body.style.position = "fixed";
+  document.body.style.top = `-${BODY_SCROLL_Y}px`;
+  document.body.style.left = "0";
+  document.body.style.right = "0";
+  document.body.style.width = "100%";
+}
+
+function unlockBodyScroll(force = false) {
+  if (!force && isAnyModalOpen()) return;
+  if (!document.body.classList.contains("modal-open")) return;
+
+  document.body.classList.remove("modal-open");
+  document.body.style.position = "";
+  document.body.style.top = "";
+  document.body.style.left = "";
+  document.body.style.right = "";
+  document.body.style.width = "";
+
+  window.scrollTo(0, BODY_SCROLL_Y || 0);
+}
 
 /* =========================
    API HELPER
@@ -349,7 +388,7 @@ function bindEvents() {
   document.querySelectorAll(".area-item").forEach((btn) => {
     btn.addEventListener("click", () => {
       const areaId = Number(btn.dataset.areaId);
-      const areaCode = btn.dataset.areaCode;
+      const areaCode = btn.datasetAreaCode || btn.dataset.areaCode;
       selectArea(areaId, areaCode, btn);
     });
   });
@@ -776,7 +815,6 @@ function clearSearch() {
 
 /* =========================
    STOCK LOCATION PICKER
-   Khu vực -> Dãy -> Kệ -> Ô
 ========================= */
 
 function setupStockLocationPicker() {
@@ -802,21 +840,10 @@ function setupStockLocationPicker() {
 }
 
 function resetStockPicker() {
-  if ($("stockRow")) {
-    $("stockRow").innerHTML = `<option value="">Chọn dãy</option>`;
-  }
-
-  if ($("stockShelf")) {
-    $("stockShelf").value = "";
-  }
-
-  if ($("stockSlot")) {
-    $("stockSlot").innerHTML = `<option value="">Chọn ô</option>`;
-  }
-
-  if ($("stockLocation")) {
-    $("stockLocation").value = "";
-  }
+  if ($("stockRow")) $("stockRow").innerHTML = `<option value="">Chọn dãy</option>`;
+  if ($("stockShelf")) $("stockShelf").value = "";
+  if ($("stockSlot")) $("stockSlot").innerHTML = `<option value="">Chọn ô</option>`;
+  if ($("stockLocation")) $("stockLocation").value = "";
 }
 
 function buildStockRows(selectedRow = "") {
@@ -842,22 +869,15 @@ function buildStockRows(selectedRow = "") {
     );
   });
 
-  if (selectedRow) {
-    rowSelect.value = String(selectedRow);
-  }
+  if (selectedRow) rowSelect.value = String(selectedRow);
 }
 
 function toggleStockShelf() {
   const areaId = Number($("stockArea")?.value || 1);
   const shelfGroup = $("stockShelfGroup");
 
-  if (shelfGroup) {
-    shelfGroup.style.display = areaId === 1 ? "" : "none";
-  }
-
-  if (areaId !== 1 && $("stockShelf")) {
-    $("stockShelf").value = "";
-  }
+  if (shelfGroup) shelfGroup.style.display = areaId === 1 ? "" : "none";
+  if (areaId !== 1 && $("stockShelf")) $("stockShelf").value = "";
 }
 
 function buildStockSlots(selectedSlot = "") {
@@ -877,11 +897,7 @@ function buildStockSlots(selectedSlot = "") {
     .filter((loc) => {
       if (Number(loc.area_id) !== areaId) return false;
       if (Number(loc.row_no) !== rowNo) return false;
-
-      if (areaId === 1) {
-        return Number(loc.shelf_no) === shelfNo;
-      }
-
+      if (areaId === 1) return Number(loc.shelf_no) === shelfNo;
       return true;
     })
     .map((loc) => Number(loc.slot_no))
@@ -895,9 +911,7 @@ function buildStockSlots(selectedSlot = "") {
     );
   });
 
-  if (selectedSlot) {
-    slotSelect.value = String(selectedSlot);
-  }
+  if (selectedSlot) slotSelect.value = String(selectedSlot);
 }
 
 function resolveStockLocationId() {
@@ -906,9 +920,7 @@ function resolveStockLocationId() {
   const shelfNo = Number($("stockShelf")?.value || 0);
   const slotNo = Number($("stockSlot")?.value || 0);
 
-  if ($("stockLocation")) {
-    $("stockLocation").value = "";
-  }
+  if ($("stockLocation")) $("stockLocation").value = "";
 
   if (!areaId || !rowNo || !slotNo) return;
   if (areaId === 1 && !shelfNo) return;
@@ -919,17 +931,11 @@ function resolveStockLocationId() {
       if (Number(loc.area_id) !== areaId) return false;
       if (Number(loc.row_no) !== rowNo) return false;
       if (Number(loc.slot_no) !== slotNo) return false;
-
-      if (areaId === 1) {
-        return Number(loc.shelf_no) === shelfNo;
-      }
-
+      if (areaId === 1) return Number(loc.shelf_no) === shelfNo;
       return true;
     });
 
-  if (found && $("stockLocation")) {
-    $("stockLocation").value = found.id;
-  }
+  if (found && $("stockLocation")) $("stockLocation").value = found.id;
 }
 
 function fillPickerByLocation(locationId) {
@@ -948,9 +954,7 @@ function fillPickerByLocation(locationId) {
 
   buildStockSlots(loc.slot_no);
 
-  if ($("stockSlot")) {
-    $("stockSlot").value = String(loc.slot_no);
-  }
+  if ($("stockSlot")) $("stockSlot").value = String(loc.slot_no);
 
   resolveStockLocationId();
 }
@@ -966,6 +970,7 @@ async function openStockModal(stockId = null, locationId = null) {
   closePartialExportModal(false);
 
   $("stockModal")?.classList.remove("hidden");
+  lockBodyScroll();
 
   if ($("stockModalTitle")) {
     $("stockModalTitle").textContent = stockId ? "Sửa thông tin hàng" : "Thêm hàng vào vị trí";
@@ -976,9 +981,7 @@ async function openStockModal(stockId = null, locationId = null) {
   toggleStockShelf();
   buildStockRows();
 
-  if (locationId) {
-    fillPickerByLocation(locationId);
-  }
+  if (locationId) fillPickerByLocation(locationId);
 
   if (stockId) {
     const s = State.stocks.find((x) => Number(x.id) === Number(stockId));
@@ -1000,6 +1003,7 @@ async function openStockModal(stockId = null, locationId = null) {
 
 function closeStockModal() {
   $("stockModal")?.classList.add("hidden");
+  unlockBodyScroll();
 }
 
 function resetStockForm() {
@@ -1079,6 +1083,8 @@ async function openMoveModal(stockId) {
   const loc = normalizeLocationParts(getLocationById(s.location_id) || s);
 
   $("moveModal")?.classList.remove("hidden");
+  lockBodyScroll();
+
   $("moveStockId").value = stockId;
 
   $("moveStockInfo").innerHTML = `
@@ -1095,6 +1101,7 @@ async function openMoveModal(stockId) {
 
 function closeMoveModal(clear = true) {
   $("moveModal")?.classList.add("hidden");
+  unlockBodyScroll();
 
   if (clear) {
     if ($("moveStockId")) $("moveStockId").value = "";
@@ -1139,12 +1146,15 @@ function openRowModal() {
 
   closeAllModals();
   $("rowModal")?.classList.remove("hidden");
+  lockBodyScroll();
+
   $("rowArea").value = State.currentAreaId;
   $("newRowNo").value = "";
 }
 
 function closeRowModal() {
   $("rowModal")?.classList.add("hidden");
+  unlockBodyScroll();
 }
 
 async function saveRow() {
@@ -1193,6 +1203,8 @@ function openSlotModal() {
   closeAllModals();
 
   $("slotModal")?.classList.remove("hidden");
+  lockBodyScroll();
+
   $("slotArea").value = State.currentAreaId;
   $("slotRowNo").value = "";
   $("slotShelfNo").value = "1";
@@ -1203,6 +1215,7 @@ function openSlotModal() {
 
 function closeSlotModal() {
   $("slotModal")?.classList.add("hidden");
+  unlockBodyScroll();
 }
 
 function toggleSlotShelfGroup() {
@@ -1296,6 +1309,8 @@ function openDetailModal(locationId) {
   const stocks = getStocksByLocation(locationId);
 
   $("detailModal")?.classList.remove("hidden");
+  lockBodyScroll();
+
   $("detailTitle").textContent = loc.location_code;
   $("detailSubTitle").textContent =
     Number(loc.area_id) === 1
@@ -1303,9 +1318,7 @@ function openDetailModal(locationId) {
       : `Lầu 6 - Dãy ${loc.row_no} - Ô ${String(loc.slot_no || loc.level_no).padStart(2, "0")}`;
 
   if (!stocks.length) {
-    $("detailContent").innerHTML = `
-      <div class="empty-state">Vị trí này đang trống.</div>
-    `;
+    $("detailContent").innerHTML = `<div class="empty-state">Vị trí này đang trống.</div>`;
     return;
   }
 
@@ -1359,6 +1372,7 @@ function openDetailModal(locationId) {
 function closeDetailModal() {
   $("detailModal")?.classList.add("hidden");
   State.selectedLocationId = null;
+  unlockBodyScroll();
 }
 
 /* =========================
@@ -1378,6 +1392,8 @@ function openPartialExportModal(stockId) {
   const loc = normalizeLocationParts(getLocationById(s.location_id) || s);
 
   $("partialExportModal")?.classList.remove("hidden");
+  lockBodyScroll();
+
   $("partialExportStockId").value = stockId;
   $("partialExportQty").value = "";
   $("partialExportNote").value = "";
@@ -1392,6 +1408,7 @@ function openPartialExportModal(stockId) {
 
 function closePartialExportModal(clear = true) {
   $("partialExportModal")?.classList.add("hidden");
+  unlockBodyScroll();
 
   if (clear) {
     if ($("partialExportStockId")) $("partialExportStockId").value = "";
@@ -1471,11 +1488,14 @@ async function openLogsModal() {
   if (!isAdmin()) return toast("Chỉ admin được xem nhật ký.");
 
   $("logsModal")?.classList.remove("hidden");
+  lockBodyScroll();
+
   await loadLogs();
 }
 
 function closeLogsModal() {
   $("logsModal")?.classList.add("hidden");
+  unlockBodyScroll();
 }
 
 async function loadLogs() {
@@ -1730,6 +1750,7 @@ function closeAllModals() {
   $("logsModal")?.classList.add("hidden");
 
   State.selectedLocationId = null;
+  unlockBodyScroll(true);
 }
 
 function editStockFromAnyModal(stockId) {
