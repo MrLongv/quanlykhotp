@@ -355,16 +355,13 @@ function bindEvents() {
   });
 
   bindModalEvents();
+  setupStockLocationPicker();
 }
 
 function bindModalEvents() {
   $("btnCloseStockModal")?.addEventListener("click", closeStockModal);
   $("btnCancelStock")?.addEventListener("click", closeStockModal);
   $("btnSaveStock")?.addEventListener("click", saveStock);
-
-  $("stockArea")?.addEventListener("change", async () => {
-    await loadLocationsForSelect("stockArea", "stockLocation");
-  });
 
   $("btnCloseMoveModal")?.addEventListener("click", closeMoveModal);
   $("btnCancelMove")?.addEventListener("click", closeMoveModal);
@@ -778,6 +775,187 @@ function clearSearch() {
 }
 
 /* =========================
+   STOCK LOCATION PICKER
+   Khu vực -> Dãy -> Kệ -> Ô
+========================= */
+
+function setupStockLocationPicker() {
+  $("stockArea")?.addEventListener("change", () => {
+    resetStockPicker();
+    buildStockRows();
+    toggleStockShelf();
+  });
+
+  $("stockRow")?.addEventListener("change", () => {
+    buildStockSlots();
+    resolveStockLocationId();
+  });
+
+  $("stockShelf")?.addEventListener("change", () => {
+    buildStockSlots();
+    resolveStockLocationId();
+  });
+
+  $("stockSlot")?.addEventListener("change", () => {
+    resolveStockLocationId();
+  });
+}
+
+function resetStockPicker() {
+  if ($("stockRow")) {
+    $("stockRow").innerHTML = `<option value="">Chọn dãy</option>`;
+  }
+
+  if ($("stockShelf")) {
+    $("stockShelf").value = "";
+  }
+
+  if ($("stockSlot")) {
+    $("stockSlot").innerHTML = `<option value="">Chọn ô</option>`;
+  }
+
+  if ($("stockLocation")) {
+    $("stockLocation").value = "";
+  }
+}
+
+function buildStockRows(selectedRow = "") {
+  const areaId = Number($("stockArea")?.value || 1);
+  const rowSelect = $("stockRow");
+  if (!rowSelect) return;
+
+  const rows = [
+    ...new Set(
+      State.allLocations
+        .filter((loc) => Number(loc.area_id) === areaId)
+        .map((loc) => Number(loc.row_no))
+        .filter(Boolean)
+    ),
+  ].sort((a, b) => a - b);
+
+  rowSelect.innerHTML = `<option value="">Chọn dãy</option>`;
+
+  rows.forEach((rowNo) => {
+    rowSelect.insertAdjacentHTML(
+      "beforeend",
+      `<option value="${rowNo}">Dãy ${String(rowNo).padStart(2, "0")}</option>`
+    );
+  });
+
+  if (selectedRow) {
+    rowSelect.value = String(selectedRow);
+  }
+}
+
+function toggleStockShelf() {
+  const areaId = Number($("stockArea")?.value || 1);
+  const shelfGroup = $("stockShelfGroup");
+
+  if (shelfGroup) {
+    shelfGroup.style.display = areaId === 1 ? "" : "none";
+  }
+
+  if (areaId !== 1 && $("stockShelf")) {
+    $("stockShelf").value = "";
+  }
+}
+
+function buildStockSlots(selectedSlot = "") {
+  const areaId = Number($("stockArea")?.value || 1);
+  const rowNo = Number($("stockRow")?.value || 0);
+  const shelfNo = Number($("stockShelf")?.value || 0);
+  const slotSelect = $("stockSlot");
+
+  if (!slotSelect) return;
+
+  slotSelect.innerHTML = `<option value="">Chọn ô</option>`;
+  if (!rowNo) return;
+  if (areaId === 1 && !shelfNo) return;
+
+  const slots = State.allLocations
+    .map((loc) => normalizeLocationParts(loc))
+    .filter((loc) => {
+      if (Number(loc.area_id) !== areaId) return false;
+      if (Number(loc.row_no) !== rowNo) return false;
+
+      if (areaId === 1) {
+        return Number(loc.shelf_no) === shelfNo;
+      }
+
+      return true;
+    })
+    .map((loc) => Number(loc.slot_no))
+    .filter(Boolean)
+    .sort((a, b) => a - b);
+
+  slots.forEach((slotNo) => {
+    slotSelect.insertAdjacentHTML(
+      "beforeend",
+      `<option value="${slotNo}">Ô ${String(slotNo).padStart(2, "0")}</option>`
+    );
+  });
+
+  if (selectedSlot) {
+    slotSelect.value = String(selectedSlot);
+  }
+}
+
+function resolveStockLocationId() {
+  const areaId = Number($("stockArea")?.value || 1);
+  const rowNo = Number($("stockRow")?.value || 0);
+  const shelfNo = Number($("stockShelf")?.value || 0);
+  const slotNo = Number($("stockSlot")?.value || 0);
+
+  if ($("stockLocation")) {
+    $("stockLocation").value = "";
+  }
+
+  if (!areaId || !rowNo || !slotNo) return;
+  if (areaId === 1 && !shelfNo) return;
+
+  const found = State.allLocations
+    .map((loc) => normalizeLocationParts(loc))
+    .find((loc) => {
+      if (Number(loc.area_id) !== areaId) return false;
+      if (Number(loc.row_no) !== rowNo) return false;
+      if (Number(loc.slot_no) !== slotNo) return false;
+
+      if (areaId === 1) {
+        return Number(loc.shelf_no) === shelfNo;
+      }
+
+      return true;
+    });
+
+  if (found && $("stockLocation")) {
+    $("stockLocation").value = found.id;
+  }
+}
+
+function fillPickerByLocation(locationId) {
+  const loc = normalizeLocationParts(getLocationById(locationId));
+  if (!loc) return;
+
+  if ($("stockArea")) $("stockArea").value = String(loc.area_id);
+
+  resetStockPicker();
+  toggleStockShelf();
+  buildStockRows(loc.row_no);
+
+  if (Number(loc.area_id) === 1 && $("stockShelf")) {
+    $("stockShelf").value = String(loc.shelf_no);
+  }
+
+  buildStockSlots(loc.slot_no);
+
+  if ($("stockSlot")) {
+    $("stockSlot").value = String(loc.slot_no);
+  }
+
+  resolveStockLocationId();
+}
+
+/* =========================
    STOCK MODAL
 ========================= */
 
@@ -788,35 +966,28 @@ async function openStockModal(stockId = null, locationId = null) {
   closePartialExportModal(false);
 
   $("stockModal")?.classList.remove("hidden");
+
   if ($("stockModalTitle")) {
     $("stockModalTitle").textContent = stockId ? "Sửa thông tin hàng" : "Thêm hàng vào vị trí";
   }
 
   resetStockForm();
-
-  await loadLocationsForSelect("stockArea", "stockLocation");
+  resetStockPicker();
+  toggleStockShelf();
+  buildStockRows();
 
   if (locationId) {
-    const loc = getLocationById(locationId);
-    if (loc) {
-      $("stockArea").value = loc.area_id;
-      await loadLocationsForSelect("stockArea", "stockLocation");
-      $("stockLocation").value = locationId;
-    }
+    fillPickerByLocation(locationId);
   }
 
   if (stockId) {
     const s = State.stocks.find((x) => Number(x.id) === Number(stockId));
     if (!s) return;
 
-    const loc = getLocationById(s.location_id);
-
     $("stockId").value = s.id;
-    $("stockArea").value = loc?.area_id || s.area_id || State.currentAreaId;
 
-    await loadLocationsForSelect("stockArea", "stockLocation");
+    fillPickerByLocation(s.location_id);
 
-    $("stockLocation").value = s.location_id;
     $("styleCode").value = s.style_code || "";
     $("poNo").value = s.po_no || "";
     $("color").value = s.color || "";
@@ -835,6 +1006,9 @@ function resetStockForm() {
   if ($("stockId")) $("stockId").value = "";
   if ($("stockArea")) $("stockArea").value = State.currentAreaId;
   if ($("stockLocation")) $("stockLocation").value = "";
+  if ($("stockRow")) $("stockRow").value = "";
+  if ($("stockShelf")) $("stockShelf").value = "";
+  if ($("stockSlot")) $("stockSlot").value = "";
   if ($("styleCode")) $("styleCode").value = "";
   if ($("poNo")) $("poNo").value = "";
   if ($("color")) $("color").value = "";
@@ -846,6 +1020,8 @@ function resetStockForm() {
 
 async function saveStock() {
   if (!canEdit()) return toast("Bạn không có quyền lưu hàng.");
+
+  resolveStockLocationId();
 
   const id = $("stockId").value;
 
@@ -860,7 +1036,7 @@ async function saveStock() {
     note: clean($("note").value),
   };
 
-  if (!payload.location_id) return toast("Vui lòng chọn vị trí.");
+  if (!payload.location_id) return toast("Vui lòng chọn đủ Khu vực, Dãy, Kệ/Ô.");
   if (!payload.style_code) return toast("Vui lòng nhập mã hàng.");
   if (!payload.po_no) return toast("Vui lòng nhập PO.");
   if (payload.carton_qty < 0) return toast("Số kiện không hợp lệ.");
@@ -1361,32 +1537,8 @@ function switchView(mode) {
 }
 
 /* =========================
-   SELECT LOADERS
+   SELECT LOADERS - MOVE ONLY
 ========================= */
-
-async function loadLocationsForSelect(areaSelectId, locationSelectId) {
-  const areaId = Number($(areaSelectId).value);
-  const select = $(locationSelectId);
-
-  if (!select) return;
-
-  const locations =
-    areaId === State.currentAreaId
-      ? State.locations
-      : await apiGet(`/api/locations?areaId=${areaId}`);
-
-  select.innerHTML = `<option value="">Chọn vị trí</option>`;
-
-  locations
-    .map((loc) => normalizeLocationParts(loc))
-    .sort(sortLocationByPosition)
-    .forEach((loc) => {
-      select.insertAdjacentHTML(
-        "beforeend",
-        `<option value="${loc.id}">${esc(getLocationSelectText(loc))}</option>`
-      );
-    });
-}
 
 async function loadAllLocationsForMove() {
   const select = $("moveLocation");
