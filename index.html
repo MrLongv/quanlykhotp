@@ -231,12 +231,30 @@
           </div>
 
           <div class="form-group">
-            <label>Vị trí</label>
-            <select id="stockLocation">
-              <option value="">Chọn vị trí</option>
-            </select>
-          </div>
+  <label>Dãy</label>
+  <select id="stockRow">
+    <option value="">Chọn dãy</option>
+  </select>
+</div>
 
+<div class="form-group" id="stockShelfGroup">
+  <label>Kệ</label>
+  <select id="stockShelf">
+    <option value="">Chọn kệ</option>
+    <option value="1">Kệ 1</option>
+    <option value="2">Kệ 2</option>
+    <option value="3">Kệ 3</option>
+  </select>
+</div>
+
+<div class="form-group">
+  <label>Ô</label>
+  <select id="stockSlot">
+    <option value="">Chọn ô</option>
+  </select>
+</div>
+
+<input type="hidden" id="stockLocation">
           <div class="form-group">
             <label>Mã hàng <span>*</span></label>
             <input type="text" id="styleCode" placeholder="VD: ABC123" />
