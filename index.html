@@ -32,7 +32,7 @@
       <button class="btn primary login-btn" id="btnLogin">Đăng nhập</button>
 
       <div class="login-note">
-        Tài khoản:kho01,kho02,xuat01,viewer
+        Tài khoản: kho01, kho02, xuat01, viewer
       </div>
     </div>
   </div>
@@ -58,7 +58,7 @@
         <button class="btn ghost" id="btnOpenLogs">Nhật ký</button>
         <button class="btn ghost" id="btnRefresh">Làm mới</button>
         <button class="btn primary" id="btnExportExcel">Xuất khu vực</button>
-<button class="btn ghost" id="btnExportAllExcel">Xuất tất cả</button>
+        <button class="btn ghost" id="btnExportAllExcel">Xuất tất cả</button>
         <button class="btn dark" id="btnLogout">Đăng xuất</button>
       </div>
     </header>
@@ -91,7 +91,7 @@
               <span class="area-icon">K</span>
               <div>
                 <strong>Kho thành phẩm</strong>
-                <small>Dãy 1 - 15, mỗi dãy 3 kệ</small>
+                <small>20 dãy, mỗi dãy 3 kệ, mỗi kệ 9 ô</small>
               </div>
             </button>
 
@@ -108,6 +108,7 @@
         <div class="sidebar-section">
           <div class="section-title"><span>Thao tác nhanh</span></div>
           <button class="quick-btn" id="btnAddRow">+ Thêm dãy mới</button>
+          <button class="quick-btn" id="btnAddSlot">+ Thêm ô mới</button>
           <button class="quick-btn" id="btnOpenAddStock">+ Thêm hàng vào vị trí</button>
           <button class="quick-btn" id="btnShowEmpty">Xem vị trí trống</button>
           <button class="quick-btn" id="btnShowInStock">Xem vị trí có hàng</button>
@@ -115,7 +116,7 @@
 
         <div class="sidebar-note">
           <strong>Gợi ý sử dụng</strong>
-          <p>Khi xuất hàng, nhập mã hàng hoặc PO vào ô tìm kiếm để biết hàng đang nằm ở dãy/kệ/ô nào.</p>
+          <p>Kho TP quản lý theo Dãy → Kệ → Ô. Lầu 6 quản lý theo Dãy → Ô.</p>
         </div>
       </aside>
 
@@ -142,7 +143,7 @@
         <div class="content-header">
           <div>
             <h2 id="currentAreaTitle">Kho thành phẩm</h2>
-            <p id="currentAreaDesc">Sơ đồ vị trí theo dãy và kệ</p>
+            <p id="currentAreaDesc">Sơ đồ Kho thành phẩm: 20 dãy, mỗi dãy 3 kệ, mỗi kệ 9 ô</p>
           </div>
 
           <div class="view-toggle">
@@ -152,14 +153,14 @@
         </div>
 
         <div class="search-result-panel hidden" id="searchResultPanel">
-<div class="panel-heading">
-  <h3>Kết quả tìm kiếm</h3>
+          <div class="panel-heading">
+            <h3>Kết quả tìm kiếm</h3>
 
-  <div class="panel-actions">
-    <button class="btn small primary" id="btnExportSearchExcel">Xuất tìm kiếm</button>
-    <button class="btn small ghost" id="btnCloseSearchResult">Đóng</button>
-  </div>
-</div>
+            <div class="panel-actions">
+              <button class="btn small primary" id="btnExportSearchExcel">Xuất tìm kiếm</button>
+              <button class="btn small ghost" id="btnCloseSearchResult">Đóng</button>
+            </div>
+          </div>
 
           <div class="table-wrap">
             <table class="data-table">
@@ -321,7 +322,7 @@
       <div class="modal-header">
         <div>
           <h3>Thêm dãy mới</h3>
-          <p>Hệ thống sẽ tự tạo vị trí theo khu vực đang chọn</p>
+          <p>Kho TP tạo 3 kệ × 9 ô. Lầu 6 tạo 20 ô.</p>
         </div>
         <button class="icon-btn" id="btnCloseRowModal">×</button>
       </div>
@@ -337,18 +338,72 @@
 
         <div class="form-group">
           <label>Số dãy mới</label>
-          <input type="number" id="newRowNo" min="1" placeholder="VD: 16" />
+          <input type="number" id="newRowNo" min="1" max="20" placeholder="VD: 20" />
         </div>
 
         <div class="form-note">
           <strong>Lưu ý:</strong>
-          Kho thành phẩm sẽ tạo 3 kệ cho mỗi dãy. Lầu 6 mặc định tạo 20 ô cho mỗi dãy.
+          Kho thành phẩm chỉ có tối đa 20 dãy. Mỗi dãy tạo 27 vị trí: 3 kệ, mỗi kệ 9 ô.
+          Lầu 6 mặc định tạo 20 ô cho mỗi dãy.
         </div>
       </div>
 
       <div class="modal-footer">
         <button class="btn ghost" id="btnCancelRow">Hủy</button>
         <button class="btn primary" id="btnSaveRow">Thêm dãy</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD SLOT -->
+  <div class="modal-backdrop hidden" id="slotModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <h3>Thêm ô mới</h3>
+          <p>Thêm ô vào kệ của Kho TP hoặc thêm ô vào dãy Lầu 6</p>
+        </div>
+        <button class="icon-btn" id="btnCloseSlotModal">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Khu vực</label>
+          <select id="slotArea">
+            <option value="1">Kho thành phẩm</option>
+            <option value="2">Lầu 6</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Số dãy</label>
+          <input type="number" id="slotRowNo" min="1" max="20" placeholder="VD: 1" />
+        </div>
+
+        <div class="form-group" id="slotShelfGroup">
+          <label>Số kệ</label>
+          <select id="slotShelfNo">
+            <option value="1">Kệ 1</option>
+            <option value="2">Kệ 2</option>
+            <option value="3">Kệ 3</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Số ô cần thêm</label>
+          <input type="number" id="slotCount" min="1" max="9" placeholder="VD: 3" />
+        </div>
+
+        <div class="form-note">
+          <strong>Ví dụ:</strong>
+          Kho TP dãy 1 kệ 2 đang có ô 01-06, nhập thêm 3 sẽ tạo ô 07-09.
+          Mỗi kệ Kho TP tối đa 9 ô. Lầu 6 dãy 1 đang có ô 01-20, nhập thêm 5 sẽ tạo ô 21-25.
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn ghost" id="btnCancelSlot">Hủy</button>
+        <button class="btn primary" id="btnSaveSlot">Thêm ô</button>
       </div>
     </div>
   </div>
@@ -471,6 +526,6 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-<script src="app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
