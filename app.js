@@ -1,6 +1,20 @@
 const API_BASE = "https://warehouse-api.longvanasb.workers.dev";
 
+const KTP_MAX_ROWS = 20;
+const KTP_SHELVES_PER_ROW = 3;
+const KTP_SLOTS_PER_SHELF = 9;
+const L6_DEFAULT_SLOTS_PER_ROW = 20;
+
 const $ = (id) => document.getElementById(id);
+
+function readSavedUser() {
+  try {
+    return JSON.parse(localStorage.getItem("warehouse_user") || "null");
+  } catch {
+    localStorage.removeItem("warehouse_user");
+    return null;
+  }
+}
 
 const State = {
   currentAreaId: 1,
@@ -15,7 +29,7 @@ const State = {
   searchResults: [],
   selectedLocationId: null,
   token: localStorage.getItem("warehouse_token") || "",
-  user: JSON.parse(localStorage.getItem("warehouse_user") || "null"),
+  user: readSavedUser(),
 };
 
 /* =========================
@@ -43,7 +57,15 @@ async function apiGet(url) {
     throw new Error("Unauthorized");
   }
 
-  if (!res.ok) throw new Error("API GET lỗi: " + url);
+  if (!res.ok) {
+    let msg = "API GET lỗi: " + url;
+    try {
+      const data = await res.json();
+      msg = data.error || msg;
+    } catch {}
+    throw new Error(msg);
+  }
+
   return await res.json();
 }
 
@@ -145,8 +167,8 @@ async function loadInitialData() {
 ========================= */
 
 async function login() {
-  const username = clean($("loginUsername").value);
-  const password = clean($("loginPassword").value);
+  const username = clean($("loginUsername")?.value);
+  const password = clean($("loginPassword")?.value);
 
   if (!username || !password) {
     toast("Vui lòng nhập tài khoản và mật khẩu.");
@@ -229,11 +251,13 @@ function showApp() {
 }
 
 function renderUser() {
-  $("currentUserName") &&
-    ($("currentUserName").textContent = State.user?.full_name || "Người dùng");
+  if ($("currentUserName")) {
+    $("currentUserName").textContent = State.user?.full_name || "Người dùng";
+  }
 
-  $("currentUserRole") &&
-    ($("currentUserRole").textContent = State.user?.role || "");
+  if ($("currentUserRole")) {
+    $("currentUserRole").textContent = State.user?.role || "";
+  }
 }
 
 function isAdmin() {
@@ -248,9 +272,10 @@ function applyPermissionUI() {
   const editable = canEdit();
   const admin = isAdmin();
 
-  $("btnAddRow") && ($("btnAddRow").style.display = admin ? "" : "none");
-  $("btnOpenAddStock") && ($("btnOpenAddStock").style.display = editable ? "" : "none");
-  $("btnOpenLogs") && ($("btnOpenLogs").style.display = admin ? "" : "none");
+  if ($("btnAddRow")) $("btnAddRow").style.display = admin ? "" : "none";
+  if ($("btnAddSlot")) $("btnAddSlot").style.display = admin ? "" : "none";
+  if ($("btnOpenAddStock")) $("btnOpenAddStock").style.display = editable ? "" : "none";
+  if ($("btnOpenLogs")) $("btnOpenLogs").style.display = admin ? "" : "none";
 }
 
 /* =========================
@@ -302,11 +327,13 @@ function bindEvents() {
 
   $("btnClearSearch")?.addEventListener("click", clearSearch);
   $("btnCloseSearchResult")?.addEventListener("click", clearSearch);
-$("btnExportSearchExcel")?.addEventListener("click", exportSearchExcel);
+  $("btnExportSearchExcel")?.addEventListener("click", exportSearchExcel);
+
   $("btnViewGrid")?.addEventListener("click", () => switchView("grid"));
   $("btnViewTable")?.addEventListener("click", () => switchView("table"));
 
   $("btnAddRow")?.addEventListener("click", openRowModal);
+  $("btnAddSlot")?.addEventListener("click", openSlotModal);
   $("btnOpenAddStock")?.addEventListener("click", () => openStockModal());
 
   $("btnShowEmpty")?.addEventListener("click", () => {
@@ -346,6 +373,11 @@ function bindModalEvents() {
   $("btnCloseRowModal")?.addEventListener("click", closeRowModal);
   $("btnCancelRow")?.addEventListener("click", closeRowModal);
   $("btnSaveRow")?.addEventListener("click", saveRow);
+
+  $("btnCloseSlotModal")?.addEventListener("click", closeSlotModal);
+  $("btnCancelSlot")?.addEventListener("click", closeSlotModal);
+  $("btnSaveSlot")?.addEventListener("click", saveSlot);
+  $("slotArea")?.addEventListener("change", toggleSlotShelfGroup);
 
   $("btnCloseDetailModal")?.addEventListener("click", closeDetailModal);
   $("btnCloseDetail")?.addEventListener("click", closeDetailModal);
@@ -406,38 +438,48 @@ function renderAll() {
 }
 
 function renderHeader() {
-  $("currentAreaTitle").textContent = State.currentAreaName;
+  if ($("currentAreaTitle")) {
+    $("currentAreaTitle").textContent = State.currentAreaName;
+  }
 
-  $("currentAreaDesc").textContent =
-    State.currentAreaId === 1
-      ? "Sơ đồ Kho thành phẩm: mỗi dãy có 3 kệ/tầng"
-      : "Sơ đồ Lầu 6: quản lý theo từng dãy và ô";
+  if ($("currentAreaDesc")) {
+    $("currentAreaDesc").textContent =
+      Number(State.currentAreaId) === 1
+        ? `Sơ đồ Kho thành phẩm: ${KTP_MAX_ROWS} dãy, mỗi dãy ${KTP_SHELVES_PER_ROW} kệ, mỗi kệ ${KTP_SLOTS_PER_SHELF} ô`
+        : `Sơ đồ Lầu 6: quản lý theo từng dãy và ô`;
+  }
 }
 
 function renderSummary() {
-  const locationIds = State.locations.map((x) => x.id);
+  const locationIds = State.locations.map((x) => Number(x.id));
 
   const activeStocks = State.stocks.filter(
-    (s) => s.status === "in_stock" && locationIds.includes(Number(s.location_id))
+    (s) =>
+      String(s.status || "in_stock") === "in_stock" &&
+      locationIds.includes(Number(s.location_id))
   );
 
   const usedLocationIds = new Set(activeStocks.map((s) => Number(s.location_id)));
 
-  $("totalLocations").textContent = State.locations.length;
-  $("usedLocations").textContent = usedLocationIds.size;
-  $("emptyLocations").textContent = Math.max(State.locations.length - usedLocationIds.size, 0);
+  if ($("totalLocations")) $("totalLocations").textContent = State.locations.length;
+  if ($("usedLocations")) $("usedLocations").textContent = usedLocationIds.size;
+  if ($("emptyLocations")) {
+    $("emptyLocations").textContent = Math.max(State.locations.length - usedLocationIds.size, 0);
+  }
 
-  $("totalCartons").textContent = activeStocks.reduce(
-    (sum, s) => sum + Number(s.carton_qty || 0),
-    0
-  );
+  if ($("totalCartons")) {
+    $("totalCartons").textContent = activeStocks.reduce(
+      (sum, s) => sum + Number(s.carton_qty || 0),
+      0
+    );
+  }
 }
 
 function renderLocations() {
   const grid = $("warehouseGrid");
   if (!grid) return;
 
-  let locations = [...State.locations];
+  let locations = [...State.locations].map((loc) => normalizeLocationParts(loc));
 
   if (State.filterMode === "empty") {
     locations = locations.filter((loc) => getStocksByLocation(loc.id).length === 0);
@@ -452,28 +494,78 @@ function renderLocations() {
     return;
   }
 
-  const grouped = groupBy(locations, "row_no");
+  if (Number(State.currentAreaId) === 1) {
+    renderKtpLocations(grid, locations);
+  } else {
+    renderL6Locations(grid, locations);
+  }
+}
 
-  grid.innerHTML = Object.keys(grouped)
+function renderKtpLocations(grid, locations) {
+  const groupedRows = groupBy(locations, "row_no");
+
+  grid.innerHTML = Object.keys(groupedRows)
     .sort((a, b) => Number(a) - Number(b))
     .map((rowNo) => {
-      const rowLocations = grouped[rowNo].sort(
-        (a, b) => Number(a.level_no) - Number(b.level_no)
-      );
+      const rowLocations = groupedRows[rowNo].sort(sortLocationByPosition);
+      const groupedShelf = groupBy(rowLocations, "shelf_no");
 
       return `
         <div class="warehouse-row-map">
           <div class="warehouse-row-title">
             <div>
               <span class="row-badge">DÃY ${String(rowNo).padStart(2, "0")}</span>
-              <h3>${State.currentAreaName}</h3>
+              <h3>Kho thành phẩm - ${KTP_SHELVES_PER_ROW} kệ, mỗi kệ ${KTP_SLOTS_PER_SHELF} ô</h3>
             </div>
             <small>${rowLocations.length} vị trí</small>
           </div>
 
-          <div class="shelf-map ${
-            State.currentAreaId === 1 ? "three-level" : "twenty-slot-grid"
-          }">
+          <div class="ktp-shelf-wrap">
+            ${Object.keys(groupedShelf)
+              .sort((a, b) => Number(a) - Number(b))
+              .map((shelfNo) => {
+                const shelfLocations = groupedShelf[shelfNo].sort(sortLocationByPosition);
+
+                return `
+                  <div class="ktp-shelf-block">
+                    <div class="ktp-shelf-title">
+                      <strong>KỆ ${shelfNo}</strong>
+                      <span>${shelfLocations.length} ô</span>
+                    </div>
+
+                    <div class="shelf-map ktp-slot-grid">
+                      ${shelfLocations.map(renderShelfBox).join("")}
+                    </div>
+                  </div>
+                `;
+              })
+              .join("")}
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function renderL6Locations(grid, locations) {
+  const grouped = groupBy(locations, "row_no");
+
+  grid.innerHTML = Object.keys(grouped)
+    .sort((a, b) => Number(a) - Number(b))
+    .map((rowNo) => {
+      const rowLocations = grouped[rowNo].sort(sortLocationByPosition);
+
+      return `
+        <div class="warehouse-row-map">
+          <div class="warehouse-row-title">
+            <div>
+              <span class="row-badge">DÃY ${String(rowNo).padStart(2, "0")}</span>
+              <h3>Lầu 6</h3>
+            </div>
+            <small>${rowLocations.length} vị trí</small>
+          </div>
+
+          <div class="shelf-map twenty-slot-grid">
             ${rowLocations.map(renderShelfBox).join("")}
           </div>
         </div>
@@ -482,17 +574,18 @@ function renderLocations() {
     .join("");
 }
 
-function renderShelfBox(loc) {
+function renderShelfBox(rawLoc) {
+  const loc = normalizeLocationParts(rawLoc);
   const stocks = getStocksByLocation(loc.id);
   const totalCarton = stocks.reduce((sum, s) => sum + Number(s.carton_qty || 0), 0);
 
   const isEmpty = stocks.length === 0;
   const statusClass = isEmpty ? "empty" : totalCarton >= 50 ? "full" : "used";
 
-  const shelfName =
-    State.currentAreaId === 1
-      ? `KỆ ${loc.level_no}`
-      : `Ô ${String(loc.level_no).padStart(2, "0")}`;
+  const title =
+    Number(loc.area_id) === 1
+      ? `Ô ${String(loc.slot_no).padStart(2, "0")}`
+      : `Ô ${String(loc.slot_no || loc.level_no).padStart(2, "0")}`;
 
   const stockHtml = isEmpty
     ? `<div class="shelf-empty">TRỐNG</div>`
@@ -521,7 +614,7 @@ function renderShelfBox(loc) {
   return `
     <div class="shelf-box ${statusClass}">
       <div class="shelf-top">
-        <strong>${shelfName}</strong>
+        <strong>${title}</strong>
         <span>${esc(loc.location_code)}</span>
       </div>
 
@@ -549,7 +642,7 @@ function renderTable() {
 
   const activeStocks = State.stocks.filter(
     (s) =>
-      s.status === "in_stock" &&
+      String(s.status || "in_stock") === "in_stock" &&
       currentLocationIds.has(Number(s.location_id))
   );
 
@@ -565,12 +658,7 @@ function renderTable() {
   tbody.innerHTML = activeStocks
     .sort(sortStockByLocation)
     .map((s) => {
-      const loc = getLocationById(s.location_id);
-
-      const levelText =
-        Number(loc?.area_id) === 1
-          ? `Kệ ${loc?.level_no}`
-          : `Ô ${String(loc?.level_no).padStart(2, "0")}`;
+      const loc = normalizeLocationParts(getLocationById(s.location_id) || s);
 
       const actions = canEdit()
         ? `
@@ -583,10 +671,10 @@ function renderTable() {
 
       return `
         <tr>
-          <td>${esc(loc?.location_code || s.location_code || "")}</td>
-          <td>${esc(getAreaName(loc?.area_id || s.area_id))}</td>
-          <td>${esc(loc?.row_no || s.row_no || "")}</td>
-          <td>${esc(levelText)}</td>
+          <td>${esc(loc.location_code || s.location_code || "")}</td>
+          <td>${esc(getAreaName(loc.area_id || s.area_id))}</td>
+          <td>${esc(loc.row_no || s.row_no || "")}</td>
+          <td>${esc(getLevelText(loc))}</td>
           <td>${esc(s.style_code)}</td>
           <td>${esc(s.po_no)}</td>
           <td>${Number(s.carton_qty || 0)}</td>
@@ -603,7 +691,7 @@ function renderTable() {
 ========================= */
 
 function handleSearch() {
-  const q = clean($("globalSearch").value).toLowerCase();
+  const q = clean($("globalSearch")?.value).toLowerCase();
 
   if (!q) {
     toast("Nhập mã hàng hoặc PO cần tìm.");
@@ -626,7 +714,7 @@ function handleSearch() {
       .join(" ")
       .toLowerCase();
 
-    return s.status === "in_stock" && text.includes(q);
+    return String(s.status || "in_stock") === "in_stock" && text.includes(q);
   });
 
   renderSearchResults(results);
@@ -634,8 +722,10 @@ function handleSearch() {
 
 function renderSearchResults(results) {
   State.searchResults = results || [];
+
   const panel = $("searchResultPanel");
   const tbody = $("searchResultBody");
+  if (!panel || !tbody) return;
 
   panel.classList.remove("hidden");
 
@@ -651,7 +741,7 @@ function renderSearchResults(results) {
   tbody.innerHTML = results
     .sort(sortStockByLocation)
     .map((s) => {
-      const loc = getLocationById(s.location_id);
+      const loc = normalizeLocationParts(getLocationById(s.location_id) || s);
 
       const actions = canEdit()
         ? `
@@ -664,7 +754,10 @@ function renderSearchResults(results) {
 
       return `
         <tr>
-          <td><strong>${esc(loc?.location_code || s.location_code || "")}</strong></td>
+          <td>
+            <strong>${esc(loc.location_code || s.location_code || "")}</strong>
+            <div class="muted-text">${esc(getAreaName(loc.area_id || s.area_id))} - Dãy ${esc(loc.row_no || s.row_no || "")} - ${esc(getLevelText(loc))}</div>
+          </td>
           <td>${esc(s.style_code)}</td>
           <td>${esc(s.po_no)}</td>
           <td>${esc(s.color || "")}</td>
@@ -679,8 +772,9 @@ function renderSearchResults(results) {
 }
 
 function clearSearch() {
-  $("globalSearch").value = "";
-  $("searchResultPanel").classList.add("hidden");
+  if ($("globalSearch")) $("globalSearch").value = "";
+  $("searchResultPanel")?.classList.add("hidden");
+  State.searchResults = [];
 }
 
 /* =========================
@@ -693,8 +787,10 @@ async function openStockModal(stockId = null, locationId = null) {
   closeMoveModal(false);
   closePartialExportModal(false);
 
-  $("stockModal").classList.remove("hidden");
-  $("stockModalTitle").textContent = stockId ? "Sửa thông tin hàng" : "Thêm hàng vào vị trí";
+  $("stockModal")?.classList.remove("hidden");
+  if ($("stockModalTitle")) {
+    $("stockModalTitle").textContent = stockId ? "Sửa thông tin hàng" : "Thêm hàng vào vị trí";
+  }
 
   resetStockForm();
 
@@ -736,16 +832,16 @@ function closeStockModal() {
 }
 
 function resetStockForm() {
-  $("stockId").value = "";
-  $("stockArea").value = State.currentAreaId;
-  $("stockLocation").value = "";
-  $("styleCode").value = "";
-  $("poNo").value = "";
-  $("color").value = "";
-  $("size").value = "";
-  $("cartonQty").value = "";
-  $("customer").value = "";
-  $("note").value = "";
+  if ($("stockId")) $("stockId").value = "";
+  if ($("stockArea")) $("stockArea").value = State.currentAreaId;
+  if ($("stockLocation")) $("stockLocation").value = "";
+  if ($("styleCode")) $("styleCode").value = "";
+  if ($("poNo")) $("poNo").value = "";
+  if ($("color")) $("color").value = "";
+  if ($("size")) $("size").value = "";
+  if ($("cartonQty")) $("cartonQty").value = "";
+  if ($("customer")) $("customer").value = "";
+  if ($("note")) $("note").value = "";
 }
 
 async function saveStock() {
@@ -804,15 +900,16 @@ async function openMoveModal(stockId) {
   const s = State.stocks.find((x) => Number(x.id) === Number(stockId));
   if (!s) return;
 
-  const loc = getLocationById(s.location_id);
+  const loc = normalizeLocationParts(getLocationById(s.location_id) || s);
 
-  $("moveModal").classList.remove("hidden");
+  $("moveModal")?.classList.remove("hidden");
   $("moveStockId").value = stockId;
 
   $("moveStockInfo").innerHTML = `
     <div class="info-box">
       <strong>${esc(s.po_no)} - ${esc(s.style_code)}</strong>
-      <p>Đang ở: ${esc(loc?.location_code || s.location_code || "")}</p>
+      <p>Đang ở: ${esc(loc.location_code || s.location_code || "")}</p>
+      <p>${esc(getAreaName(loc.area_id))} - Dãy ${esc(loc.row_no || "")} - ${esc(getLevelText(loc))}</p>
       <p>Số kiện: ${Number(s.carton_qty || 0)}</p>
     </div>
   `;
@@ -865,7 +962,7 @@ function openRowModal() {
   if (!isAdmin()) return toast("Chỉ admin được thêm dãy.");
 
   closeAllModals();
-  $("rowModal").classList.remove("hidden");
+  $("rowModal")?.classList.remove("hidden");
   $("rowArea").value = State.currentAreaId;
   $("newRowNo").value = "";
 }
@@ -882,6 +979,9 @@ async function saveRow() {
 
   if (!areaId) return toast("Vui lòng chọn khu vực.");
   if (!rowNo || rowNo < 1) return toast("Số dãy không hợp lệ.");
+  if (areaId === 1 && rowNo > KTP_MAX_ROWS) {
+    return toast(`Kho thành phẩm chỉ có tối đa ${KTP_MAX_ROWS} dãy.`);
+  }
 
   try {
     showLoading(true);
@@ -896,10 +996,108 @@ async function saveRow() {
 
     if (areaId === State.currentAreaId) {
       await reloadStocksAndLocations();
+    } else {
+      await loadInitialData();
     }
   } catch (err) {
     console.error(err);
     toast(err.message || "Không thêm được dãy. Có thể dãy đã tồn tại.");
+  } finally {
+    showLoading(false);
+  }
+}
+
+/* =========================
+   ADD SLOT
+========================= */
+
+function openSlotModal() {
+  if (!isAdmin()) return toast("Chỉ admin được thêm ô.");
+
+  closeAllModals();
+
+  $("slotModal")?.classList.remove("hidden");
+  $("slotArea").value = State.currentAreaId;
+  $("slotRowNo").value = "";
+  $("slotShelfNo").value = "1";
+  $("slotCount").value = "";
+
+  toggleSlotShelfGroup();
+}
+
+function closeSlotModal() {
+  $("slotModal")?.classList.add("hidden");
+}
+
+function toggleSlotShelfGroup() {
+  const areaId = Number($("slotArea")?.value || State.currentAreaId);
+  const group = $("slotShelfGroup");
+
+  if (!group) return;
+
+  group.style.display = areaId === 1 ? "" : "none";
+
+  if ($("slotCount")) {
+    $("slotCount").max = areaId === 1 ? String(KTP_SLOTS_PER_SHELF) : "";
+    $("slotCount").placeholder = areaId === 1 ? "VD: 3" : "VD: 5";
+  }
+
+  if ($("slotRowNo")) {
+    $("slotRowNo").max = areaId === 1 ? String(KTP_MAX_ROWS) : "";
+  }
+}
+
+async function saveSlot() {
+  if (!isAdmin()) return toast("Chỉ admin được thêm ô.");
+
+  const areaId = Number($("slotArea").value);
+  const rowNo = Number($("slotRowNo").value);
+  const shelfNo = Number($("slotShelfNo").value || 0);
+  const count = Number($("slotCount").value);
+
+  if (!areaId) return toast("Vui lòng chọn khu vực.");
+  if (!rowNo || rowNo < 1) return toast("Số dãy không hợp lệ.");
+  if (!count || count < 1) return toast("Số ô cần thêm không hợp lệ.");
+
+  const payload = {
+    area_id: areaId,
+    row_no: rowNo,
+    count,
+  };
+
+  if (areaId === 1) {
+    if (rowNo > KTP_MAX_ROWS) {
+      return toast(`Kho thành phẩm chỉ có tối đa ${KTP_MAX_ROWS} dãy.`);
+    }
+
+    if (!shelfNo || shelfNo < 1 || shelfNo > KTP_SHELVES_PER_ROW) {
+      return toast(`Kho TP chỉ có kệ 1 đến kệ ${KTP_SHELVES_PER_ROW}.`);
+    }
+
+    if (count > KTP_SLOTS_PER_SHELF) {
+      return toast(`Mỗi kệ Kho TP chỉ có tối đa ${KTP_SLOTS_PER_SHELF} ô.`);
+    }
+
+    payload.shelf_no = shelfNo;
+  }
+
+  try {
+    showLoading(true);
+
+    const res = await apiPost("/api/locations/add-slot", payload);
+
+    closeAllModals();
+
+    if (areaId === State.currentAreaId) {
+      await reloadStocksAndLocations();
+    } else {
+      await loadInitialData();
+    }
+
+    toast(res.message || "Đã thêm ô mới.");
+  } catch (err) {
+    console.error(err);
+    toast(err.message || "Không thêm được ô.");
   } finally {
     showLoading(false);
   }
@@ -914,19 +1112,19 @@ function openDetailModal(locationId) {
   closeMoveModal();
   closePartialExportModal(false);
 
-  const loc = getLocationById(locationId);
+  const loc = normalizeLocationParts(getLocationById(locationId));
   if (!loc) return;
 
   State.selectedLocationId = locationId;
 
   const stocks = getStocksByLocation(locationId);
 
-  $("detailModal").classList.remove("hidden");
+  $("detailModal")?.classList.remove("hidden");
   $("detailTitle").textContent = loc.location_code;
   $("detailSubTitle").textContent =
     Number(loc.area_id) === 1
-      ? `Dãy ${loc.row_no} - Kệ ${loc.level_no}`
-      : `Lầu 6 - Dãy ${loc.row_no} - Ô ${String(loc.level_no).padStart(2, "0")}`;
+      ? `Kho TP - Dãy ${loc.row_no} - Kệ ${loc.shelf_no} - Ô ${String(loc.slot_no).padStart(2, "0")}`
+      : `Lầu 6 - Dãy ${loc.row_no} - Ô ${String(loc.slot_no || loc.level_no).padStart(2, "0")}`;
 
   if (!stocks.length) {
     $("detailContent").innerHTML = `
@@ -1001,16 +1199,17 @@ function openPartialExportModal(stockId) {
   const s = State.stocks.find((x) => Number(x.id) === Number(stockId));
   if (!s) return toast("Không tìm thấy hàng.");
 
-  const loc = getLocationById(s.location_id);
+  const loc = normalizeLocationParts(getLocationById(s.location_id) || s);
 
-  $("partialExportModal").classList.remove("hidden");
+  $("partialExportModal")?.classList.remove("hidden");
   $("partialExportStockId").value = stockId;
   $("partialExportQty").value = "";
   $("partialExportNote").value = "";
 
   $("partialExportInfo").innerHTML = `
     <strong>${esc(s.po_no)} - ${esc(s.style_code)}</strong>
-    <p>Vị trí: ${esc(loc?.location_code || s.location_code || "")}</p>
+    <p>Vị trí: ${esc(loc.location_code || s.location_code || "")}</p>
+    <p>${esc(getAreaName(loc.area_id))} - Dãy ${esc(loc.row_no || "")} - ${esc(getLevelText(loc))}</p>
     <p>Số kiện hiện có: <b>${Number(s.carton_qty || 0)}</b></p>
   `;
 }
@@ -1154,11 +1353,11 @@ async function loadLogs() {
 function switchView(mode) {
   State.viewMode = mode;
 
-  $("btnViewGrid").classList.toggle("active", mode === "grid");
-  $("btnViewTable").classList.toggle("active", mode === "table");
+  $("btnViewGrid")?.classList.toggle("active", mode === "grid");
+  $("btnViewTable")?.classList.toggle("active", mode === "table");
 
-  $("warehouseGrid").classList.toggle("hidden", mode !== "grid");
-  $("tablePanel").classList.toggle("hidden", mode !== "table");
+  $("warehouseGrid")?.classList.toggle("hidden", mode !== "grid");
+  $("tablePanel")?.classList.toggle("hidden", mode !== "table");
 }
 
 /* =========================
@@ -1169,6 +1368,8 @@ async function loadLocationsForSelect(areaSelectId, locationSelectId) {
   const areaId = Number($(areaSelectId).value);
   const select = $(locationSelectId);
 
+  if (!select) return;
+
   const locations =
     areaId === State.currentAreaId
       ? State.locations
@@ -1177,45 +1378,35 @@ async function loadLocationsForSelect(areaSelectId, locationSelectId) {
   select.innerHTML = `<option value="">Chọn vị trí</option>`;
 
   locations
-    .sort(
-      (a, b) =>
-        Number(a.row_no) - Number(b.row_no) ||
-        Number(a.level_no) - Number(b.level_no)
-    )
+    .map((loc) => normalizeLocationParts(loc))
+    .sort(sortLocationByPosition)
     .forEach((loc) => {
-      const text =
-        areaId === 1
-          ? `${loc.location_code} - Dãy ${loc.row_no} - Kệ ${loc.level_no}`
-          : `${loc.location_code} - Dãy ${loc.row_no} - Ô ${String(loc.level_no).padStart(2, "0")}`;
-
       select.insertAdjacentHTML(
         "beforeend",
-        `<option value="${loc.id}">${esc(text)}</option>`
+        `<option value="${loc.id}">${esc(getLocationSelectText(loc))}</option>`
       );
     });
 }
 
 async function loadAllLocationsForMove() {
   const select = $("moveLocation");
+  if (!select) return;
+
   select.innerHTML = `<option value="">Chọn vị trí</option>`;
 
   const area1 = await apiGet("/api/locations?areaId=1");
   const area2 = await apiGet("/api/locations?areaId=2");
   const all = [...area1, ...area2];
 
-  all.forEach((loc) => {
-    const areaName = getAreaName(loc.area_id);
-
-    const text =
-      Number(loc.area_id) === 1
-        ? `${areaName} - Dãy ${loc.row_no} - Kệ ${loc.level_no}`
-        : `${areaName} - Dãy ${loc.row_no} - Ô ${String(loc.level_no).padStart(2, "0")}`;
-
-    select.insertAdjacentHTML(
-      "beforeend",
-      `<option value="${loc.id}">${esc(text)}</option>`
-    );
-  });
+  all
+    .map((loc) => normalizeLocationParts(loc))
+    .sort(sortLocationByPosition)
+    .forEach((loc) => {
+      select.insertAdjacentHTML(
+        "beforeend",
+        `<option value="${loc.id}">${esc(getLocationSelectText(loc))}</option>`
+      );
+    });
 }
 
 /* =========================
@@ -1258,80 +1449,32 @@ async function exportExcelByArea(exportAll = false) {
       .filter((s) => String(s.status || "in_stock") === "in_stock")
       .filter((s) => {
         if (!exportAreaId) return true;
-        return Number(s.area_id) === Number(exportAreaId);
+        const loc = normalizeLocationParts(getLocationById(s.location_id) || s);
+        return Number(loc.area_id || s.area_id) === Number(exportAreaId);
       })
       .sort(sortStockByLocation);
 
-    const data = exportRows.map((s) => {
-      const areaId = Number(s.area_id || 0);
-      const rowNo = Number(s.row_no || 0);
-      const levelNo = Number(s.level_no || 0);
-      const locationCode = s.location_code || "";
-
-      const levelText =
-        areaId === 1
-          ? `Kệ ${levelNo}`
-          : `Ô ${String(levelNo).padStart(2, "0")}`;
-
-      return {
-        "Khu vực": cleanExcelText(getAreaName(areaId)),
-        "Mã vị trí": cleanExcelText(locationCode),
-        "Dãy": rowNo,
-        "Kệ/Ô": cleanExcelText(levelText),
-        "Mã hàng": cleanExcelText(s.style_code),
-        "PO": cleanExcelText(s.po_no),
-        "Màu": cleanExcelText(s.color),
-        "Size": cleanExcelText(s.size),
-        "Số kiện": Number(s.carton_qty || 0),
-        "Khách hàng": cleanExcelText(s.customer),
-        "Ghi chú": cleanExcelText(s.note),
-      };
-    });
+    const data = buildExcelData(exportRows);
 
     if (!data.length) {
       toast("Không có dữ liệu để xuất.");
       return;
     }
 
-    const ws = XLSX.utils.json_to_sheet(data);
-
-    ws["!cols"] = [
-      { wch: 18 },
-      { wch: 18 },
-      { wch: 8 },
-      { wch: 12 },
-      { wch: 24 },
-      { wch: 18 },
-      { wch: 14 },
-      { wch: 12 },
-      { wch: 10 },
-      { wch: 20 },
-      { wch: 36 },
-    ];
-
-    ws["!autofilter"] = {
-      ref: `A1:K${data.length + 1}`,
-    };
-
-    const wb = XLSX.utils.book_new();
-
-    const sheetName =
+    writeExcelFile(
+      data,
       exportAreaId === 0
         ? "Toan bo kho"
         : exportAreaId === 1
         ? "Kho thanh pham"
-        : "Lau 6";
-
-    XLSX.utils.book_append_sheet(wb, ws, sheetName);
-
-    const fileName =
+        : "Lau 6",
       exportAreaId === 0
         ? `ton-kho-toan-bo-${todayText()}.xlsx`
         : exportAreaId === 1
         ? `ton-kho-thanh-pham-${todayText()}.xlsx`
-        : `ton-kho-lau-6-${todayText()}.xlsx`;
+        : `ton-kho-lau-6-${todayText()}.xlsx`
+    );
 
-    XLSX.writeFile(wb, fileName);
     toast("Đã xuất Excel.");
   } catch (err) {
     console.error(err);
@@ -1340,6 +1483,7 @@ async function exportExcelByArea(exportAll = false) {
     showLoading(false);
   }
 }
+
 function exportSearchExcel() {
   if (typeof XLSX === "undefined") {
     toast("Chưa tải được thư viện Excel.");
@@ -1355,24 +1499,32 @@ function exportSearchExcel() {
     return;
   }
 
-  const data = rows.map((s) => {
-    const loc = getLocationById(s.location_id);
+  const data = buildExcelData(rows);
 
-    const areaId = Number(s.area_id || loc?.area_id || 0);
-    const rowNo = Number(s.row_no || loc?.row_no || 0);
-    const levelNo = Number(s.level_no || loc?.level_no || 0);
-    const locationCode = s.location_code || loc?.location_code || "";
+  const keyword = clean($("globalSearch")?.value || "tim-kiem")
+    .replace(/[\\/:*?"<>|]/g, "-")
+    .replace(/\s+/g, "-");
 
-    const levelText =
-      areaId === 1
-        ? `Kệ ${levelNo}`
-        : `Ô ${String(levelNo).padStart(2, "0")}`;
+  writeExcelFile(
+    data,
+    "Ket qua tim kiem",
+    `ket-qua-tim-kiem-${keyword}-${todayText()}.xlsx`
+  );
+
+  toast("Đã xuất Excel kết quả tìm kiếm.");
+}
+
+function buildExcelData(rows) {
+  return rows.map((s) => {
+    const loc = normalizeLocationParts(getLocationById(s.location_id) || s);
 
     return {
-      "Khu vực": cleanExcelText(getAreaName(areaId)),
-      "Mã vị trí": cleanExcelText(locationCode),
-      "Dãy": rowNo,
-      "Kệ/Ô": cleanExcelText(levelText),
+      "Khu vực": cleanExcelText(getAreaName(loc.area_id || s.area_id)),
+      "Mã vị trí": cleanExcelText(loc.location_code || s.location_code),
+      "Dãy": Number(loc.row_no || s.row_no || 0),
+      "Kệ": Number(loc.area_id || s.area_id) === 1 ? Number(loc.shelf_no || 0) : "",
+      "Ô": Number(loc.slot_no || loc.level_no || 0),
+      "Kệ/Ô": cleanExcelText(getLevelText(loc)),
       "Mã hàng": cleanExcelText(s.style_code),
       "PO": cleanExcelText(s.po_no),
       "Màu": cleanExcelText(s.color),
@@ -1382,14 +1534,18 @@ function exportSearchExcel() {
       "Ghi chú": cleanExcelText(s.note),
     };
   });
+}
 
+function writeExcelFile(data, sheetName, fileName) {
   const ws = XLSX.utils.json_to_sheet(data);
 
   ws["!cols"] = [
     { wch: 18 },
-    { wch: 18 },
+    { wch: 22 },
     { wch: 8 },
-    { wch: 12 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 14 },
     { wch: 24 },
     { wch: 18 },
     { wch: 14 },
@@ -1400,23 +1556,14 @@ function exportSearchExcel() {
   ];
 
   ws["!autofilter"] = {
-    ref: `A1:K${data.length + 1}`,
+    ref: `A1:M${data.length + 1}`,
   };
 
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Ket qua tim kiem");
-
-  const keyword = clean($("globalSearch")?.value || "tim-kiem")
-    .replace(/[\\/:*?"<>|]/g, "-")
-    .replace(/\s+/g, "-");
-
-  XLSX.writeFile(
-    wb,
-    `ket-qua-tim-kiem-${keyword}-${todayText()}.xlsx`
-  );
-
-  toast("Đã xuất Excel kết quả tìm kiếm.");
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  XLSX.writeFile(wb, fileName);
 }
+
 /* =========================
    MODAL HELPERS
 ========================= */
@@ -1426,6 +1573,7 @@ function closeAllModals() {
   $("stockModal")?.classList.add("hidden");
   $("moveModal")?.classList.add("hidden");
   $("rowModal")?.classList.add("hidden");
+  $("slotModal")?.classList.add("hidden");
   $("partialExportModal")?.classList.add("hidden");
   $("logsModal")?.classList.add("hidden");
 
@@ -1471,19 +1619,70 @@ function getAreaName(areaId) {
   return area?.name || "";
 }
 
+function normalizeLocationParts(loc) {
+  if (!loc) return null;
+
+  const areaId = Number(loc.area_id || 0);
+  const levelNo = Number(loc.level_no || 0);
+
+  let shelfNo = Number(loc.shelf_no || 0);
+  let slotNo = Number(loc.slot_no || 0);
+
+  if (areaId === 1) {
+    if (!shelfNo) shelfNo = Math.floor((levelNo - 1) / KTP_SLOTS_PER_SHELF) + 1;
+    if (!slotNo) slotNo = ((levelNo - 1) % KTP_SLOTS_PER_SHELF) + 1;
+  } else {
+    shelfNo = 0;
+    if (!slotNo) slotNo = levelNo;
+  }
+
+  return {
+    ...loc,
+    area_id: areaId,
+    row_no: Number(loc.row_no || 0),
+    level_no: levelNo,
+    shelf_no: shelfNo,
+    slot_no: slotNo,
+  };
+}
+
+function getLevelText(loc) {
+  const x = normalizeLocationParts(loc);
+  if (!x) return "";
+
+  if (Number(x.area_id) === 1) {
+    return `Kệ ${x.shelf_no} - Ô ${String(x.slot_no).padStart(2, "0")}`;
+  }
+
+  return `Ô ${String(x.slot_no || x.level_no).padStart(2, "0")}`;
+}
+
+function getLocationSelectText(loc) {
+  const x = normalizeLocationParts(loc);
+  if (!x) return "";
+
+  if (Number(x.area_id) === 1) {
+    return `${x.location_code} - Kho TP - Dãy ${x.row_no} - Kệ ${x.shelf_no} - Ô ${String(x.slot_no).padStart(2, "0")}`;
+  }
+
+  return `${x.location_code} - Lầu 6 - Dãy ${x.row_no} - Ô ${String(x.slot_no || x.level_no).padStart(2, "0")}`;
+}
+
+function sortLocationByPosition(a, b) {
+  const ax = normalizeLocationParts(a);
+  const bx = normalizeLocationParts(b);
+
+  if (Number(ax.area_id) !== Number(bx.area_id)) return Number(ax.area_id) - Number(bx.area_id);
+  if (Number(ax.row_no) !== Number(bx.row_no)) return Number(ax.row_no) - Number(bx.row_no);
+  if (Number(ax.shelf_no) !== Number(bx.shelf_no)) return Number(ax.shelf_no) - Number(bx.shelf_no);
+  return Number(ax.slot_no) - Number(bx.slot_no);
+}
+
 function sortStockByLocation(a, b) {
-  const areaA = Number(a.area_id || 0);
-  const areaB = Number(b.area_id || 0);
+  const locA = normalizeLocationParts(getLocationById(a.location_id) || a);
+  const locB = normalizeLocationParts(getLocationById(b.location_id) || b);
 
-  const rowA = Number(a.row_no || 0);
-  const rowB = Number(b.row_no || 0);
-
-  const levelA = Number(a.level_no || 0);
-  const levelB = Number(b.level_no || 0);
-
-  if (areaA !== areaB) return areaA - areaB;
-  if (rowA !== rowB) return rowA - rowB;
-  return levelA - levelB;
+  return sortLocationByPosition(locA, locB);
 }
 
 function groupBy(arr, key) {
