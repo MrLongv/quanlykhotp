@@ -1,33 +1,30 @@
 /* =========================================================
-   Warehouse Location Manager
-   style.css - Professional Admin Dashboard
-   KTP: 20 dãy × 3 kệ × 9 ô
+   Warehouse Manager UI
+   Clean Professional Dark Dashboard
+   PC + Mobile Optimized
    ========================================================= */
 
 :root{
-  --bg:#0b1220;
-  --bg-soft:#0f172a;
+  --bg:#0b1120;
+  --bg2:#0f172a;
   --panel:#111827;
-  --panel-2:#162033;
-  --panel-3:#0b1120;
+  --panel2:#151f32;
+  --panel3:#0a1020;
 
   --text:#f8fafc;
   --muted:#94a3b8;
-  --muted-2:#64748b;
+  --muted2:#64748b;
 
   --line:rgba(148,163,184,.18);
-  --line-strong:rgba(148,163,184,.32);
+  --line2:rgba(148,163,184,.32);
 
   --primary:#2563eb;
-  --primary-2:#0ea5e9;
-  --success:#22c55e;
-  --warning:#f59e0b;
-  --danger:#ef4444;
+  --primary2:#0ea5e9;
+  --green:#22c55e;
+  --amber:#f59e0b;
+  --red:#ef4444;
 
   --radius:16px;
-  --radius-lg:22px;
-
-  --shadow:0 12px 28px rgba(0,0,0,.28);
   --safe-bottom:env(safe-area-inset-bottom,0px);
 }
 
@@ -40,16 +37,23 @@
   -webkit-tap-highlight-color:transparent;
 }
 
-html,
+html{
+  width:100%;
+  min-height:100%;
+  -webkit-text-size-adjust:100%;
+  text-size-adjust:100%;
+}
+
 body{
   margin:0;
+  width:100%;
   min-height:100%;
+  overflow-x:hidden;
   font-family:Arial,"Segoe UI",sans-serif;
   color:var(--text);
   background:
-    radial-gradient(circle at top left,rgba(37,99,235,.16),transparent 30%),
-    linear-gradient(180deg,#08111f 0%,#0b1220 45%,#0f172a 100%);
-  overflow-x:hidden;
+    radial-gradient(circle at top left,rgba(37,99,235,.16),transparent 34%),
+    linear-gradient(180deg,#08111f 0%,#0b1120 48%,#0f172a 100%);
 }
 
 body.modal-open{
@@ -69,7 +73,7 @@ button{
 }
 
 button:disabled{
-  opacity:.5;
+  opacity:.52;
   cursor:not-allowed;
 }
 
@@ -87,8 +91,15 @@ button:disabled{
   line-height:1.4;
 }
 
+/* Chống mobile tự zoom khi bấm input */
+input,
+select,
+textarea{
+  font-size:16px;
+}
+
 /* =========================
-   APP SHELL
+   APP
 ========================= */
 
 .app-shell{
@@ -107,20 +118,20 @@ button:disabled{
   display:flex;
   align-items:center;
   justify-content:center;
-  padding:24px;
+  padding:22px;
   background:
-    radial-gradient(circle at top left,rgba(37,99,235,.2),transparent 36%),
+    radial-gradient(circle at top left,rgba(37,99,235,.22),transparent 38%),
     linear-gradient(135deg,#08111f,#0f172a 60%,#082f49);
 }
 
 .login-card{
   width:100%;
   max-width:420px;
-  background:rgba(15,23,42,.94);
+  background:rgba(15,23,42,.96);
   border:1px solid var(--line);
-  border-radius:24px;
+  border-radius:22px;
   padding:26px;
-  box-shadow:var(--shadow);
+  box-shadow:0 18px 50px rgba(0,0,0,.35);
 }
 
 .login-logo{
@@ -129,8 +140,7 @@ button:disabled{
 
 .login-card h2{
   margin:0 0 8px;
-  font-size:25px;
-  color:#fff;
+  font-size:24px;
   letter-spacing:-.03em;
 }
 
@@ -157,7 +167,7 @@ button:disabled{
 }
 
 /* =========================
-   BUTTONS
+   BUTTON
 ========================= */
 
 .btn{
@@ -168,7 +178,7 @@ button:disabled{
   font-size:13px;
   font-weight:800;
   white-space:nowrap;
-  transition:.16s ease;
+  transition:.15s ease;
   touch-action:manipulation;
 }
 
@@ -178,18 +188,18 @@ button:disabled{
 .toggle-btn:active,
 .shelf-actions button:active,
 .link-btn:active{
-  transform:scale(.98);
+  transform:scale(.985);
 }
 
 .btn.primary{
-  background:linear-gradient(135deg,var(--primary),var(--primary-2));
+  background:linear-gradient(135deg,var(--primary),var(--primary2));
   color:#fff;
   border-color:rgba(255,255,255,.08);
 }
 
 .btn.ghost,
 .btn.dark{
-  background:#0b1120;
+  background:#0a1020;
   color:#e2e8f0;
   border-color:var(--line);
 }
@@ -197,7 +207,7 @@ button:disabled{
 .btn.soft{
   background:rgba(37,99,235,.16);
   color:#bfdbfe;
-  border-color:rgba(96,165,250,.32);
+  border-color:rgba(96,165,250,.3);
 }
 
 .btn.small{
@@ -220,7 +230,7 @@ button:disabled{
 #btnRefresh:hover,
 #btnExportExcel:hover,
 #btnExportAllExcel:hover{
-  background:#1f2a3f;
+  background:#1f2b43;
 }
 
 #btnLogout{
@@ -234,7 +244,7 @@ button:disabled{
   height:40px;
   border:1px solid var(--line);
   border-radius:12px;
-  background:#0b1120;
+  background:#0a1020;
   color:#fff;
   font-size:22px;
   line-height:1;
@@ -257,20 +267,19 @@ button:disabled{
 }
 
 /* =========================
-   HEADER
+   HEADER - PC PROFESSIONAL
 ========================= */
 
 .app-header{
-  min-height:auto;
-  background:rgba(15,23,42,.94);
+  min-height:78px;
+  background:rgba(15,23,42,.96);
   border:1px solid var(--line);
   border-radius:18px;
-  padding:14px 16px;
-  box-shadow:none;
+  padding:13px 15px;
   display:grid;
-  grid-template-columns:minmax(280px,1fr) auto;
+  grid-template-columns:minmax(300px,1fr) auto;
   align-items:center;
-  gap:18px;
+  gap:14px;
 }
 
 .header-left{
@@ -287,11 +296,11 @@ button:disabled{
   border-radius:13px;
   display:grid;
   place-items:center;
+  background:linear-gradient(135deg,#2563eb,#0ea5e9);
   color:#fff;
   font-weight:900;
   letter-spacing:.4px;
-  background:linear-gradient(135deg,#2563eb,#0ea5e9);
-  box-shadow:0 10px 20px rgba(14,165,233,.18);
+  box-shadow:0 10px 24px rgba(14,165,233,.16);
 }
 
 .app-header h1{
@@ -300,6 +309,9 @@ button:disabled{
   line-height:1.22;
   color:#fff;
   letter-spacing:-.02em;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
 .app-header p{
@@ -310,19 +322,18 @@ button:disabled{
 }
 
 .header-actions{
-  display:grid;
-  grid-template-columns:116px 116px;
-  gap:8px;
+  display:flex;
   align-items:center;
+  gap:8px;
 }
 
 .user-box{
-  grid-column:1/-1;
+  width:132px;
   min-height:40px;
   padding:6px 10px;
   border:1px solid var(--line);
-  border-radius:13px;
-  background:#0b1120;
+  border-radius:12px;
+  background:#0a1020;
   display:flex;
   flex-direction:column;
   align-items:center;
@@ -331,23 +342,25 @@ button:disabled{
 
 .user-box strong{
   color:#fff;
-  font-size:13px;
+  font-size:12px;
   line-height:1.15;
 }
 
 .user-box span{
   margin-top:2px;
   color:#38bdf8;
-  font-size:11px;
+  font-size:10px;
   text-transform:uppercase;
   font-weight:900;
 }
 
 .header-actions .btn{
-  min-height:38px;
+  min-height:40px;
+  height:40px;
+  min-width:92px;
+  padding:0 11px;
   border-radius:12px;
   font-size:13px;
-  padding:0 10px;
 }
 
 /* =========================
@@ -356,7 +369,7 @@ button:disabled{
 
 .search-panel{
   margin-top:10px;
-  background:rgba(15,23,42,.92);
+  background:rgba(15,23,42,.94);
   border:1px solid var(--line);
   border-radius:18px;
   padding:10px;
@@ -374,6 +387,7 @@ button:disabled{
   border:1px solid var(--line);
   border-radius:13px;
   padding:0 13px;
+  min-width:0;
 }
 
 .search-icon{
@@ -383,10 +397,10 @@ button:disabled{
 
 .search-box input{
   width:100%;
+  min-width:0;
   border:0;
   outline:0;
   background:transparent;
-  font-size:15px;
   color:#fff;
 }
 
@@ -396,7 +410,7 @@ button:disabled{
 
 .search-actions{
   display:grid;
-  grid-template-columns:120px 120px;
+  grid-template-columns:118px 118px;
   gap:8px;
 }
 
@@ -407,7 +421,7 @@ button:disabled{
 .main-layout{
   margin-top:12px;
   display:grid;
-  grid-template-columns:280px 1fr;
+  grid-template-columns:280px minmax(0,1fr);
   gap:14px;
   align-items:start;
 }
@@ -419,11 +433,10 @@ button:disabled{
 .sidebar{
   position:sticky;
   top:12px;
-  background:rgba(15,23,42,.94);
+  background:rgba(15,23,42,.96);
   border:1px solid var(--line);
   border-radius:18px;
   padding:14px;
-  box-shadow:none;
 }
 
 .sidebar-section + .sidebar-section{
@@ -449,7 +462,7 @@ button:disabled{
   width:100%;
   min-height:62px;
   border:1px solid rgba(148,163,184,.14);
-  background:#0b1120;
+  background:#0a1020;
   border-radius:14px;
   padding:10px;
   display:flex;
@@ -458,12 +471,12 @@ button:disabled{
   text-align:left;
   color:var(--text);
   overflow:hidden;
-  transition:.16s ease;
+  transition:.15s ease;
 }
 
 .area-item:hover{
   background:#101827;
-  border-color:var(--line-strong);
+  border-color:var(--line2);
 }
 
 .area-item.active{
@@ -503,7 +516,7 @@ button:disabled{
   width:100%;
   min-height:40px;
   border:1px solid rgba(148,163,184,.14);
-  background:#0b1120;
+  background:#0a1020;
   border-radius:13px;
   color:#cbd5e1;
   font-weight:800;
@@ -511,20 +524,20 @@ button:disabled{
   margin-bottom:7px;
   text-align:left;
   padding:0 12px;
-  transition:.16s ease;
+  transition:.15s ease;
 }
 
 .quick-btn:hover{
   background:#162033;
   color:#fff;
-  border-color:var(--line-strong);
+  border-color:var(--line2);
 }
 
 .sidebar-note{
   margin-top:14px;
   padding:12px;
   border-radius:14px;
-  background:#0b1120;
+  background:#0a1020;
   border:1px dashed rgba(148,163,184,.24);
 }
 
@@ -555,7 +568,7 @@ button:disabled{
 }
 
 .summary-card{
-  background:rgba(15,23,42,.94);
+  background:rgba(15,23,42,.96);
   border:1px solid var(--line);
   border-radius:16px;
   padding:11px 13px;
@@ -585,7 +598,7 @@ button:disabled{
 
 .content-header{
   margin-top:10px;
-  background:rgba(15,23,42,.94);
+  background:rgba(15,23,42,.96);
   border:1px solid var(--line);
   border-radius:18px;
   padding:12px 14px;
@@ -645,7 +658,7 @@ button:disabled{
 }
 
 .warehouse-row-map{
-  background:rgba(15,23,42,.94);
+  background:rgba(15,23,42,.96);
   border:1px solid var(--line);
   border-radius:20px;
   padding:14px;
@@ -685,8 +698,6 @@ button:disabled{
   font-weight:900;
   letter-spacing:.04em;
 }
-
-/* KTP SHELF */
 
 .ktp-shelf-wrap{
   display:grid;
@@ -742,7 +753,9 @@ button:disabled{
   grid-template-columns:repeat(5,minmax(0,1fr));
 }
 
-/* SHELF BOX */
+/* =========================
+   LOCATION BOX
+========================= */
 
 .shelf-box{
   min-width:0;
@@ -754,12 +767,12 @@ button:disabled{
   grid-template-rows:auto 1fr auto;
   overflow:hidden;
   position:relative;
-  transition:.16s ease;
+  transition:.15s ease;
 }
 
 .shelf-box:hover{
   transform:translateY(-1px);
-  border-color:var(--line-strong);
+  border-color:var(--line2);
 }
 
 .shelf-box.empty{
@@ -922,7 +935,7 @@ button:disabled{
 .table-panel,
 .search-result-panel{
   margin-top:12px;
-  background:rgba(15,23,42,.94);
+  background:rgba(15,23,42,.96);
   border:1px solid var(--line);
   border-radius:18px;
   padding:12px;
@@ -1109,7 +1122,6 @@ button:disabled{
   border-radius:13px;
   padding:0 13px;
   outline:0;
-  font-size:15px;
   color:#fff;
 }
 
@@ -1137,7 +1149,7 @@ button:disabled{
 
 .form-note{
   background:#070d1a;
-  border:1px dashed var(--line-strong);
+  border:1px dashed var(--line2);
   color:#cbd5e1;
   border-radius:14px;
   padding:12px;
@@ -1151,7 +1163,7 @@ button:disabled{
 
 .empty-state{
   background:#070d1a;
-  border:1px dashed var(--line-strong);
+  border:1px dashed var(--line2);
   color:var(--muted);
   padding:22px;
   text-align:center;
@@ -1358,6 +1370,27 @@ button:disabled{
    RESPONSIVE
 ========================= */
 
+@media(max-width:1200px){
+  .app-header{
+    grid-template-columns:1fr;
+  }
+
+  .header-actions{
+    width:100%;
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+
+  .user-box{
+    width:100%;
+  }
+
+  .header-actions .btn{
+    width:100%;
+    min-width:0;
+  }
+}
+
 @media(max-width:1100px){
   .main-layout{
     grid-template-columns:1fr;
@@ -1377,19 +1410,6 @@ button:disabled{
 }
 
 @media(max-width:900px){
-  .app-header{
-    grid-template-columns:1fr;
-    gap:10px;
-  }
-
-  .header-actions{
-    grid-template-columns:1fr 1fr;
-  }
-
-  .user-box{
-    align-items:flex-start;
-  }
-
   .search-panel{
     grid-template-columns:1fr;
   }
@@ -1423,8 +1443,10 @@ button:disabled{
   }
 
   .app-header{
+    min-height:auto;
     padding:11px;
     border-radius:16px;
+    gap:10px;
   }
 
   .header-left{
@@ -1441,6 +1463,7 @@ button:disabled{
 
   .app-header h1{
     font-size:15px;
+    white-space:normal;
   }
 
   .app-header p{
@@ -1452,9 +1475,17 @@ button:disabled{
     gap:7px;
   }
 
+  .user-box{
+    grid-column:1/-1;
+    align-items:flex-start;
+    min-height:36px;
+  }
+
   .header-actions .btn{
     min-height:36px;
+    height:36px;
     font-size:12px;
+    border-radius:11px;
   }
 
   #btnLogout{
@@ -1462,7 +1493,7 @@ button:disabled{
   }
 
   .search-box{
-    height:40px;
+    height:42px;
   }
 
   .sidebar{
@@ -1539,6 +1570,16 @@ button:disabled{
 
   .form-grid{
     grid-template-columns:1fr;
+  }
+
+  .modal-backdrop{
+    padding:8px;
+    padding-bottom:calc(8px + var(--safe-bottom));
+  }
+
+  .modal{
+    border-radius:18px;
+    max-height:94vh;
   }
 }
 
