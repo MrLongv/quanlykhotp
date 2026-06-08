@@ -586,7 +586,7 @@ function renderKtpLocations(grid, locations) {
         <div class="warehouse-row-map" data-row-jump="1-${Number(rowNo)}">
           <div class="warehouse-row-title">
             <div>
-              <span class="row-badge">DÃY ${String(rowNo).padStart(2, "0")}</span>
+              <span class="row-badge">${getRowBadgeName(1, rowNo)}</span>
               <h3>Kho thành phẩm - ${KTP_SHELVES_PER_ROW} kệ, mỗi kệ ${KTP_SLOTS_PER_SHELF} ô</h3>
             </div>
             <small>${rowLocations.length} vị trí</small>
@@ -746,7 +746,7 @@ function renderTable() {
         <tr>
           <td>${esc(loc.location_code || s.location_code || "")}</td>
           <td>${esc(getAreaName(loc.area_id || s.area_id))}</td>
-          <td>${esc(loc.row_no || s.row_no || "")}</td>
+          <td>${esc(getRowName(loc.area_id || s.area_id, loc.row_no || s.row_no))}</td>
           <td>${esc(getLevelText(loc))}</td>
           <td>${esc(s.style_code)}</td>
           <td>${esc(s.po_no)}</td>
@@ -830,7 +830,11 @@ function renderSearchResults(results) {
         <tr>
           <td>
             <strong>${esc(loc.location_code || s.location_code || "")}</strong>
-            <div class="muted-text">${esc(getAreaName(loc.area_id || s.area_id))} - Dãy ${esc(loc.row_no || s.row_no || "")} - ${esc(getLevelText(loc))}</div>
+           <div class="muted-text">
+  ${esc(getAreaName(loc.area_id || s.area_id))} -
+  ${esc(getRowName(loc.area_id || s.area_id, loc.row_no || s.row_no))} -
+  ${esc(getLevelText(loc))}
+</div>
           </td>
           <td>${esc(s.style_code)}</td>
           <td>${esc(s.po_no)}</td>
@@ -881,7 +885,11 @@ function buildJumpRows() {
   for (let i = 1; i <= maxRow; i++) {
     rowSelect.insertAdjacentHTML(
       "beforeend",
-      `<option value="${i}">Dãy ${String(i).padStart(2, "0")}</option>`
+      `<option value="${i}">${
+  areaId === 1
+    ? `Dãy ${String(i).padStart(2, "0")} - G${i}`
+    : `Dãy ${String(i).padStart(2, "0")}`
+}</option>`
     );
   }
 }
@@ -993,7 +1001,11 @@ function buildStockRows(selectedRow = "") {
   rows.forEach((rowNo) => {
     rowSelect.insertAdjacentHTML(
       "beforeend",
-      `<option value="${rowNo}">Dãy ${String(rowNo).padStart(2, "0")}</option>`
+      `<option value="${rowNo}">${
+  areaId === 1
+    ? `Dãy ${String(rowNo).padStart(2, "0")} - G${rowNo}`
+    : `Dãy ${String(rowNo).padStart(2, "0")}`
+}</option>`
     );
   });
 
@@ -1219,7 +1231,7 @@ async function openMoveModal(stockId) {
     <div class="info-box">
       <strong>${esc(s.po_no)} - ${esc(s.style_code)}</strong>
       <p>Đang ở: ${esc(loc.location_code || s.location_code || "")}</p>
-      <p>${esc(getAreaName(loc.area_id))} - Dãy ${esc(loc.row_no || "")} - ${esc(getLevelText(loc))}</p>
+      <p>${esc(getAreaName(loc.area_id))} - ${esc(getRowName(loc.area_id, loc.row_no))} - ${esc(getLevelText(loc))}</p>
       <p>Số kiện: ${Number(s.carton_qty || 0)}</p>
     </div>
   `;
@@ -1441,9 +1453,9 @@ function openDetailModal(locationId) {
 
   $("detailTitle").textContent = loc.location_code;
   $("detailSubTitle").textContent =
-    Number(loc.area_id) === 1
-      ? `Kho TP - Dãy ${loc.row_no} - Kệ ${loc.shelf_no} - Ô ${String(loc.slot_no).padStart(2, "0")}`
-      : `Lầu 6 - Dãy ${loc.row_no} - Ô ${String(loc.slot_no || loc.level_no).padStart(2, "0")}`;
+  Number(loc.area_id) === 1
+    ? `Kho TP - ${getRowName(loc.area_id, loc.row_no)} - Kệ ${loc.shelf_no} - Ô ${String(loc.slot_no).padStart(2, "0")}`
+    : `Lầu 6 - ${getRowName(loc.area_id, loc.row_no)} - Ô ${String(loc.slot_no || loc.level_no).padStart(2, "0")}`;
 
   if (!stocks.length) {
     $("detailContent").innerHTML = `<div class="empty-state">Vị trí này đang trống.</div>`;
@@ -1530,7 +1542,7 @@ function openPartialExportModal(stockId) {
   $("partialExportInfo").innerHTML = `
     <strong>${esc(s.po_no)} - ${esc(s.style_code)}</strong>
     <p>Vị trí: ${esc(loc.location_code || s.location_code || "")}</p>
-    <p>${esc(getAreaName(loc.area_id))} - Dãy ${esc(loc.row_no || "")} - ${esc(getLevelText(loc))}</p>
+    <p>${esc(getAreaName(loc.area_id))} - ${esc(getRowName(loc.area_id, loc.row_no))} - ${esc(getLevelText(loc))}</p>
     <p>Số kiện hiện có: <b>${Number(s.carton_qty || 0)}</b></p>
   `;
 }
@@ -2175,7 +2187,7 @@ function buildExcelData(rows) {
     return {
       "Khu vực": cleanExcelText(getAreaName(loc.area_id || s.area_id)),
       "Mã vị trí": cleanExcelText(loc.location_code || s.location_code),
-      "Dãy": Number(loc.row_no || s.row_no || 0),
+      "Dãy": getRowName(loc.area_id || s.area_id, loc.row_no || s.row_no),
       "Kệ": Number(loc.area_id || s.area_id) === 1 ? Number(loc.shelf_no || 0) : "",
       "Ô": Number(loc.slot_no || loc.level_no || 0),
       "Kệ/Ô": cleanExcelText(getLevelText(loc)),
@@ -2322,7 +2334,29 @@ function getAreaName(areaId) {
   const area = State.areas.find((x) => Number(x.id) === id);
   return area?.name || "";
 }
+function getRowName(areaId, rowNo) {
+  const row = Number(rowNo || 0);
 
+  if (!row) return "";
+
+  if (Number(areaId) === 1) {
+    return `Dãy ${row} - G${row}`;
+  }
+
+  return `Dãy ${row}`;
+}
+
+function getRowBadgeName(areaId, rowNo) {
+  const row = Number(rowNo || 0);
+
+  if (!row) return "";
+
+  if (Number(areaId) === 1) {
+    return `DÃY ${String(row).padStart(2, "0")} - G${row}`;
+  }
+
+  return `DÃY ${String(row).padStart(2, "0")}`;
+}
 function normalizeLocationParts(loc) {
   if (!loc) return null;
 
@@ -2366,10 +2400,10 @@ function getLocationSelectText(loc) {
   if (!x) return "";
 
   if (Number(x.area_id) === 1) {
-    return `${x.location_code} - Kho TP - Dãy ${x.row_no} - Kệ ${x.shelf_no} - Ô ${String(x.slot_no).padStart(2, "0")}`;
+    return `${x.location_code} - Kho TP - ${getRowName(x.area_id, x.row_no)} - Kệ ${x.shelf_no} - Ô ${String(x.slot_no).padStart(2, "0")}`;
   }
 
-  return `${x.location_code} - Lầu 6 - Dãy ${x.row_no} - Ô ${String(x.slot_no || x.level_no).padStart(2, "0")}`;
+  return `${x.location_code} - Lầu 6 - ${getRowName(x.area_id, x.row_no)} - Ô ${String(x.slot_no || x.level_no).padStart(2, "0")}`;
 }
 
 function sortLocationByPosition(a, b) {
