@@ -509,7 +509,7 @@ function renderHeader() {
   if ($("currentAreaDesc")) {
     $("currentAreaDesc").textContent =
       Number(State.currentAreaId) === 1
-        ? `Sơ đồ Kho thành phẩm: ${KTP_MAX_ROWS} dãy, mỗi dãy ${KTP_SHELVES_PER_ROW} kệ, mỗi kệ ${KTP_SLOTS_PER_SHELF} ô`
+        ? `Sơ đồ Kho thành phẩm: Dãy 1-${KTP_MAX_ROWS} tương ứng G1-G${KTP_MAX_ROWS}, mỗi dãy ${KTP_SHELVES_PER_ROW} kệ, mỗi kệ ${KTP_SLOTS_PER_SHELF} ô`
         : `Sơ đồ Lầu 6: quản lý theo từng dãy và ô`;
   }
 }
@@ -1886,11 +1886,15 @@ function buildCompleteTransferRows() {
   rowSelect.innerHTML = `<option value="">Chọn dãy</option>`;
 
   rows.forEach((rowNo) => {
-    rowSelect.insertAdjacentHTML(
-      "beforeend",
-      `<option value="${rowNo}">Dãy ${String(rowNo).padStart(2, "0")}</option>`
-    );
-  });
+  rowSelect.insertAdjacentHTML(
+    "beforeend",
+    `<option value="${rowNo}">${
+      areaId === 1
+        ? `Dãy ${String(rowNo).padStart(2, "0")} - G${rowNo}`
+        : `Dãy ${String(rowNo).padStart(2, "0")}`
+    }</option>`
+  );
+});
 }
 
 function toggleCompleteTransferShelf() {
@@ -2208,7 +2212,7 @@ function writeExcelFile(data, sheetName, fileName) {
   ws["!cols"] = [
     { wch: 18 },
     { wch: 22 },
-    { wch: 8 },
+    { wch: 14 },
     { wch: 8 },
     { wch: 8 },
     { wch: 14 },
