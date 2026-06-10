@@ -953,8 +953,8 @@ async function jumpToSelectedRow() {
       });
 
       await loadCurrentAreaData();
-renderAll();
-applyPermissionUI();
+      renderAll();
+      applyPermissionUI();
     }
 
     setTimeout(() => {
@@ -1805,28 +1805,41 @@ function renderPendingTransfers() {
   `;
 }
 
-function openCompleteTransferModal(transferId) {
+async function openCompleteTransferModal(transferId) {
   const t = (State.pendingTransfers || []).find((x) => Number(x.id) === Number(transferId));
   if (!t) return toast("Không tìm thấy phiếu chuyển.");
 
-  $("completeTransferModal")?.classList.remove("hidden");
-  lockBodyScroll();
+  try {
+    showLoading(true);
 
-  $("completeTransferId").value = t.id;
-  $("completeTransferArea").value = String(t.target_area_id);
-  $("completeTransferLocation").value = "";
-  $("completeTransferNote").value = "";
+    // Khi nhập hàng chờ vào vị trí mới mới tải đủ vị trí 2 khu.
+    // Không tải lúc mở web để giảm D1 read.
+    await loadAllLocationsCached();
 
-  $("completeTransferInfo").innerHTML = `
-    <strong>${esc(t.style_code)} - PO ${esc(t.po_no)}</strong>
-    <p>Từ vị trí: ${esc(t.from_location_code || "")}</p>
-    <p>Đích: ${esc(t.target_area_name || "")}</p>
-    <p>Số kiện: <b>${Number(t.carton_qty || 0)}</b></p>
-  `;
+    $("completeTransferModal")?.classList.remove("hidden");
+    lockBodyScroll();
 
-  resetCompleteTransferPicker();
-  buildCompleteTransferRows();
-  toggleCompleteTransferShelf();
+    $("completeTransferId").value = t.id;
+    $("completeTransferArea").value = String(t.target_area_id);
+    $("completeTransferLocation").value = "";
+    $("completeTransferNote").value = "";
+
+    $("completeTransferInfo").innerHTML = `
+      <strong>${esc(t.style_code)} - PO ${esc(t.po_no)}</strong>
+      <p>Từ vị trí: ${esc(t.from_location_code || "")}</p>
+      <p>Đích: ${esc(t.target_area_name || "")}</p>
+      <p>Số kiện: <b>${Number(t.carton_qty || 0)}</b></p>
+    `;
+
+    resetCompleteTransferPicker();
+    buildCompleteTransferRows();
+    toggleCompleteTransferShelf();
+  } catch (err) {
+    console.error(err);
+    toast("Không tải được danh sách vị trí.");
+  } finally {
+    showLoading(false);
+  }
 }
 
 function closeCompleteTransferModal() {
