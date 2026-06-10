@@ -211,7 +211,7 @@ async function loadCurrentAreaData() {
   State.allLocations = [...State.locations];
 
   State.stocks = await apiGet(
-    `/api/stocks?areaId=${areaId}&status=in_stock&limit=1000`
+    `/api/stocks?areaId=${areaId}&status=in_stock&limit=5000`
   );
 }
 
