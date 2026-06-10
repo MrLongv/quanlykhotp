@@ -184,14 +184,12 @@ async function loadInitialData() {
     showLoading(true);
 
     State.areas = await apiGet("/api/areas");
-    State.locations = await apiGet(`/api/locations?areaId=${State.currentAreaId}`);
 
-    const area1Locations = await apiGet("/api/locations?areaId=1");
-    const area2Locations = await apiGet("/api/locations?areaId=2");
-    State.allLocations = [...area1Locations, ...area2Locations];
+    await loadCurrentAreaData();
 
-    State.stocks = await apiGet("/api/stocks");
-    await loadPendingTransfersSilent();
+    // Không tự đọc hàng chờ nhập khi mở web để giảm D1 read.
+    // Chỉ tải khi bấm nút "Hàng chờ nhập".
+    State.pendingTransfers = State.pendingTransfers || [];
 
     renderAll();
     applyPermissionUI();
@@ -201,6 +199,48 @@ async function loadInitialData() {
   } finally {
     showLoading(false);
   }
+}
+
+async function loadCurrentAreaData() {
+  const areaId = Number(State.currentAreaId || 1);
+
+  State.locations = await apiGet(`/api/locations?areaId=${areaId}`);
+
+  // Mặc định chỉ giữ vị trí khu vực đang xem.
+  // Khi cần chuyển hàng sang khu khác mới tải toàn bộ vị trí.
+  State.allLocations = [...State.locations];
+
+  State.stocks = await apiGet(
+    `/api/stocks?areaId=${areaId}&status=in_stock&limit=1000`
+  );
+}
+
+async function loadAllLocationsCached(force = false) {
+  const hasArea1 = State.allLocations.some((x) => Number(x.area_id) === 1);
+  const hasArea2 = State.allLocations.some((x) => Number(x.area_id) === 2);
+
+  if (!force && hasArea1 && hasArea2) {
+    return State.allLocations;
+  }
+
+  const [area1Locations, area2Locations] = await Promise.all([
+    apiGet("/api/locations?areaId=1"),
+    apiGet("/api/locations?areaId=2"),
+  ]);
+
+  State.allLocations = [...area1Locations, ...area2Locations];
+  return State.allLocations;
+}
+
+function mergeStocks(rows) {
+  (rows || []).forEach((row) => {
+    const idx = State.stocks.findIndex((x) => Number(x.id) === Number(row.id));
+    if (idx >= 0) {
+      State.stocks[idx] = { ...State.stocks[idx], ...row };
+    } else {
+      State.stocks.push(row);
+    }
+  });
 }
 
 /* =========================
@@ -475,9 +515,9 @@ async function selectArea(areaId, areaCode, btn) {
     State.currentAreaName = areaId === 1 ? "Kho thành phẩm" : "Lầu 6";
 
     document.querySelectorAll(".area-item").forEach((x) => x.classList.remove("active"));
-    btn.classList.add("active");
+    btn?.classList.add("active");
 
-    State.locations = await apiGet(`/api/locations?areaId=${areaId}`);
+    await loadCurrentAreaData();
 
     renderAll();
     applyPermissionUI();
@@ -763,34 +803,30 @@ function renderTable() {
    SEARCH
 ========================= */
 
-function handleSearch() {
-  const q = clean($("globalSearch")?.value).toLowerCase();
+async function handleSearch() {
+  const q = clean($("globalSearch")?.value);
 
   if (!q) {
     toast("Nhập mã hàng hoặc PO cần tìm.");
     return;
   }
 
-  const results = State.stocks.filter((s) => {
-    const loc = getLocationById(s.location_id);
+  try {
+    showLoading(true);
 
-    const text = [
-      s.style_code,
-      s.po_no,
-      s.color,
-      s.size,
-      s.customer,
-      s.note,
-      loc?.location_code,
-      s.location_code,
-    ]
-      .join(" ")
-      .toLowerCase();
+    // Tìm kiếm trên Worker/D1 theo từ khóa, không cần tải toàn bộ stock về trình duyệt.
+    const results = await apiGet(
+      `/api/stocks/search?q=${encodeURIComponent(q)}`
+    );
 
-    return String(s.status || "in_stock") === "in_stock" && text.includes(q);
-  });
-
-  renderSearchResults(results);
+    mergeStocks(results);
+    renderSearchResults(results);
+  } catch (err) {
+    console.error(err);
+    toast(err.message || "Không tìm được dữ liệu.");
+  } finally {
+    showLoading(false);
+  }
 }
 
 function renderSearchResults(results) {
@@ -916,9 +952,9 @@ async function jumpToSelectedRow() {
         );
       });
 
-      State.locations = await apiGet(`/api/locations?areaId=${areaId}`);
-      renderAll();
-      applyPermissionUI();
+      await loadCurrentAreaData();
+renderAll();
+applyPermissionUI();
     }
 
     setTimeout(() => {
@@ -1682,8 +1718,13 @@ async function createTransferTicket(stockId) {
     toast("Đã tạo phiếu chuyển.");
     closeAllModals();
 
-    await reloadStocksAndLocations();
-    await loadPendingTransfers();
+   await reloadStocksAndLocations();
+
+// Chỉ tải hàng chờ nhập nếu modal đang mở,
+// tránh tạo phiếu xong lại đọc thêm không cần thiết.
+if (!$("pendingTransferModal")?.classList.contains("hidden")) {
+  await loadPendingTransfers();
+}
   } catch (err) {
     console.error(err);
     toast(err.message || "Không tạo được phiếu chuyển.");
@@ -1692,7 +1733,7 @@ async function createTransferTicket(stockId) {
   }
 }
 
-function openPendingTransferModal() {
+async function openPendingTransferModal() {
   if (!canEdit()) return toast("Bạn không có quyền xem hàng chờ nhập.");
 
   closeAllModals();
@@ -1700,7 +1741,7 @@ function openPendingTransferModal() {
   $("pendingTransferModal")?.classList.remove("hidden");
   lockBodyScroll();
 
-  renderPendingTransfers();
+  await loadPendingTransfers();
 }
 
 function closePendingTransferModal() {
@@ -2063,9 +2104,7 @@ async function loadAllLocationsForMove() {
 
   select.innerHTML = `<option value="">Chọn vị trí</option>`;
 
-  const area1 = await apiGet("/api/locations?areaId=1");
-  const area2 = await apiGet("/api/locations?areaId=2");
-  const all = [...area1, ...area2];
+  const all = await loadAllLocationsCached();
 
   all
     .map((loc) => normalizeLocationParts(loc))
@@ -2077,20 +2116,16 @@ async function loadAllLocationsForMove() {
       );
     });
 }
-
 /* =========================
    RELOAD
 ========================= */
 
 async function reloadStocksAndLocations() {
-  State.locations = await apiGet(`/api/locations?areaId=${State.currentAreaId}`);
+  await loadCurrentAreaData();
 
-  const area1Locations = await apiGet("/api/locations?areaId=1");
-  const area2Locations = await apiGet("/api/locations?areaId=2");
-  State.allLocations = [...area1Locations, ...area2Locations];
-
-  State.stocks = await apiGet("/api/stocks");
-  await loadPendingTransfersSilent();
+  // Không tự đọc hàng chờ nhập sau mỗi thao tác.
+  // Nếu modal hàng chờ nhập đang mở thì người dùng có thể bấm "Tải lại".
+  State.pendingTransfers = State.pendingTransfers || [];
 
   renderAll();
   applyPermissionUI();
@@ -2109,19 +2144,23 @@ async function exportExcelByArea(exportAll = false) {
   try {
     showLoading(true);
 
-    if (!State.stocks || !State.stocks.length) {
-      State.stocks = await apiGet("/api/stocks");
+    let exportAreaId = exportAll ? 0 : Number(State.currentAreaId);
+    let exportRows = [];
+
+    if (exportAll) {
+      // Chỉ khi bấm "Xuất tất cả" mới đọc toàn bộ stock.
+      await loadAllLocationsCached();
+      exportRows = await apiGet("/api/stocks?status=in_stock&limit=5000");
+    } else {
+      // Xuất khu hiện tại thì chỉ đọc khu hiện tại.
+      exportRows = await apiGet(
+        `/api/stocks?areaId=${exportAreaId}&status=in_stock&limit=5000`
+      );
+      mergeStocks(exportRows);
     }
 
-    const exportAreaId = exportAll ? 0 : Number(State.currentAreaId);
-
-    const exportRows = State.stocks
+    exportRows = exportRows
       .filter((s) => String(s.status || "in_stock") === "in_stock")
-      .filter((s) => {
-        if (!exportAreaId) return true;
-        const loc = normalizeLocationParts(getLocationById(s.location_id) || s);
-        return Number(loc.area_id || s.area_id) === Number(exportAreaId);
-      })
       .sort(sortStockByLocation);
 
     const data = buildExcelData(exportRows);
