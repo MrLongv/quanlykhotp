@@ -1,10 +1,16 @@
 const API_BASE = "https://warehouse-api.longvanasb.workers.dev";
 
-const KTP_MAX_ROWS = 20;
+const KTP_NORMAL_MAX_ROWS = 20;
+const KTP_N_ROW_NO = 21;
+const KTP_N_SLOTS = 30;
+const KTP_MAX_ROWS = 21;
+
 const KTP_SHELVES_PER_ROW = 3;
 const KTP_SLOTS_PER_SHELF = 6;
+
 const L6_MAX_ROWS = 11;
 const L6_DEFAULT_SLOTS_PER_ROW = 20;
+
 const NX_MAX_ROWS = 9;
 const NX_DEFAULT_SLOTS_PER_ROW = 4;
 const NX_SLOT_LABELS = ["A", "B", "C", "D"];
@@ -57,16 +63,23 @@ function getAreaMaxRows(areaId) {
   return 20;
 }
 
-function getDefaultSlotsPerRow(areaId) {
+function getDefaultSlotsPerRow(areaId, rowNo = 0) {
   const code = getAreaCodeById(areaId);
+
+  if (code === "KTP" && Number(rowNo) === KTP_N_ROW_NO) return KTP_N_SLOTS;
   if (code === "KTP") return KTP_SLOTS_PER_SHELF;
   if (code === "L6") return L6_DEFAULT_SLOTS_PER_ROW;
   if (code === "NX") return NX_DEFAULT_SLOTS_PER_ROW;
+
   return 20;
 }
 
 function isKtpArea(areaId) {
   return getAreaCodeById(areaId) === "KTP";
+}
+
+function isKtpNRow(areaId, rowNo) {
+  return isKtpArea(areaId) && Number(rowNo) === KTP_N_ROW_NO;
 }
 
 function isParkingArea(areaId) {
@@ -75,9 +88,13 @@ function isParkingArea(areaId) {
 
 function getKtpRowLabel(rowNo) {
   const row = Number(rowNo || 0);
+
   if (!row) return "";
+  if (row === KTP_N_ROW_NO) return "Dãy N";
   if (row <= 3) return `Dãy ${row}`;
-  return `G${row - 3}`;
+  if (row >= 4 && row <= 20) return `G${row - 3}`;
+
+  return `Dãy ${row}`;
 }
 
 function getSlotLabel(areaId, slotNo) {
@@ -239,8 +256,6 @@ async function loadInitialData() {
 
     await loadCurrentAreaData();
 
-    // Không tự đọc hàng chờ nhập khi mở web để giảm D1 read.
-    // Chỉ tải khi bấm nút "Hàng chờ nhập".
     State.pendingTransfers = State.pendingTransfers || [];
 
     renderAll();
@@ -258,8 +273,6 @@ async function loadCurrentAreaData() {
 
   State.locations = await apiGet(`/api/locations?areaId=${areaId}`);
 
-  // Mặc định chỉ giữ vị trí khu vực đang xem.
-  // Khi cần chuyển hàng sang khu khác mới tải toàn bộ vị trí.
   State.allLocations = [...State.locations];
 
   State.stocks = await apiGet(
@@ -524,6 +537,8 @@ function bindModalEvents() {
   $("btnCancelSlot")?.addEventListener("click", closeSlotModal);
   $("btnSaveSlot")?.addEventListener("click", saveSlot);
   $("slotArea")?.addEventListener("change", toggleSlotShelfGroup);
+  $("slotRowNo")?.addEventListener("input", toggleSlotShelfGroup);
+  $("slotRowNo")?.addEventListener("change", toggleSlotShelfGroup);
 
   $("btnCloseDetailModal")?.addEventListener("click", closeDetailModal);
   $("btnCloseDetail")?.addEventListener("click", closeDetailModal);
@@ -601,7 +616,7 @@ function renderHeader() {
   if ($("currentAreaDesc")) {
     $("currentAreaDesc").textContent =
       isKtpArea(State.currentAreaId)
-        ? `Sơ đồ Kho thành phẩm: 20 dãy (${getKtpRowLabel(1)}, ${getKtpRowLabel(2)}, ${getKtpRowLabel(3)}, G1-G17), mỗi dãy ${KTP_SHELVES_PER_ROW} tầng, mỗi tầng ${KTP_SLOTS_PER_SHELF} ô`
+        ? `Sơ đồ Kho thành phẩm: 20 dãy chính (${getKtpRowLabel(1)}, ${getKtpRowLabel(2)}, ${getKtpRowLabel(3)}, G1-G17) + Dãy N 30 ô`
         : isParkingArea(State.currentAreaId)
         ? `Sơ đồ Nhà xe: ${NX_MAX_ROWS} dãy, mỗi dãy 4 ô A, B, C, D`
         : `Sơ đồ Lầu 6: ${L6_MAX_ROWS} dãy, mỗi dãy ${L6_DEFAULT_SLOTS_PER_ROW} ô`;
@@ -673,40 +688,56 @@ function renderKtpLocations(grid, locations) {
   grid.innerHTML = Object.keys(groupedRows)
     .sort((a, b) => Number(a) - Number(b))
     .map((rowNo) => {
+      const rowNum = Number(rowNo);
+      const isNRow = rowNum === KTP_N_ROW_NO;
       const rowLocations = groupedRows[rowNo].sort(sortLocationByPosition);
       const groupedShelf = groupBy(rowLocations, "shelf_no");
 
       return `
-        <div class="warehouse-row-map" data-row-jump="1-${Number(rowNo)}">
+        <div class="warehouse-row-map" data-row-jump="1-${rowNum}">
           <div class="warehouse-row-title">
             <div>
               <span class="row-badge">${getRowBadgeName(1, rowNo)}</span>
-              <h3>Kho thành phẩm - ${KTP_SHELVES_PER_ROW} tầng, mỗi tầng ${KTP_SLOTS_PER_SHELF} ô</h3>
+              <h3>${
+                isNRow
+                  ? "Kho thành phẩm - Dãy N, 30 ô"
+                  : `Kho thành phẩm - ${KTP_SHELVES_PER_ROW} tầng, mỗi tầng ${KTP_SLOTS_PER_SHELF} ô`
+              }</h3>
             </div>
             <small>${rowLocations.length} vị trí</small>
           </div>
 
-          <div class="ktp-shelf-wrap">
-            ${Object.keys(groupedShelf)
-              .sort((a, b) => Number(a) - Number(b))
-              .map((shelfNo) => {
-                const shelfLocations = groupedShelf[shelfNo].sort(sortLocationByPosition);
+          ${
+            isNRow
+              ? `
+                <div class="shelf-map twenty-slot-grid">
+                  ${rowLocations.map(renderShelfBox).join("")}
+                </div>
+              `
+              : `
+                <div class="ktp-shelf-wrap">
+                  ${Object.keys(groupedShelf)
+                    .sort((a, b) => Number(a) - Number(b))
+                    .map((shelfNo) => {
+                      const shelfLocations = groupedShelf[shelfNo].sort(sortLocationByPosition);
 
-                return `
-                  <div class="ktp-shelf-block">
-                    <div class="ktp-shelf-title">
-                      <strong>TẦNG ${shelfNo}</strong>
-                      <span>${shelfLocations.length} ô</span>
-                    </div>
+                      return `
+                        <div class="ktp-shelf-block">
+                          <div class="ktp-shelf-title">
+                            <strong>TẦNG ${shelfNo}</strong>
+                            <span>${shelfLocations.length} ô</span>
+                          </div>
 
-                    <div class="shelf-map ktp-slot-grid">
-                      ${shelfLocations.map(renderShelfBox).join("")}
-                    </div>
-                  </div>
-                `;
-              })
-              .join("")}
-          </div>
+                          <div class="shelf-map ktp-slot-grid">
+                            ${shelfLocations.map(renderShelfBox).join("")}
+                          </div>
+                        </div>
+                      `;
+                    })
+                    .join("")}
+                </div>
+              `
+          }
         </div>
       `;
     })
@@ -720,18 +751,19 @@ function renderSimpleAreaLocations(grid, locations) {
     .sort((a, b) => Number(a) - Number(b))
     .map((rowNo) => {
       const rowLocations = grouped[rowNo].sort(sortLocationByPosition);
+      const areaId = Number(rowLocations[0]?.area_id || State.currentAreaId);
 
       return `
-        <div class="warehouse-row-map" data-row-jump="2-${Number(rowNo)}">
+        <div class="warehouse-row-map" data-row-jump="${areaId}-${Number(rowNo)}">
           <div class="warehouse-row-title">
             <div>
               <span class="row-badge">DÃY ${String(rowNo).padStart(2, "0")}</span>
-              <h3>${esc(getAreaName(rowLocations[0]?.area_id || State.currentAreaId))}</h3>
+              <h3>${esc(getAreaName(areaId))}</h3>
             </div>
             <small>${rowLocations.length} vị trí</small>
           </div>
 
-          <div class="shelf-map ${isParkingArea(rowLocations[0]?.area_id || State.currentAreaId) ? "four-slot-grid" : "twenty-slot-grid"}">
+          <div class="shelf-map ${isParkingArea(areaId) ? "four-slot-grid" : "twenty-slot-grid"}">
             ${rowLocations.map(renderShelfBox).join("")}
           </div>
         </div>
@@ -748,9 +780,7 @@ function renderShelfBox(rawLoc) {
   const isEmpty = stocks.length === 0;
   const statusClass = isEmpty ? "empty" : totalCarton >= 50 ? "full" : "used";
 
-  const title = isParkingArea(loc.area_id)
-    ? `Ô ${getSlotLabel(loc.area_id, loc.slot_no || loc.level_no)}`
-    : `Ô ${getSlotLabel(loc.area_id, loc.slot_no || loc.level_no)}`;
+  const title = `Ô ${getSlotLabel(loc.area_id, loc.slot_no || loc.level_no)}`;
 
   const stockHtml = isEmpty
     ? `<div class="shelf-empty">TRỐNG</div>`
@@ -867,7 +897,6 @@ async function handleSearch() {
   try {
     showLoading(true);
 
-    // Tìm kiếm trên Worker/D1 theo từ khóa, không cần tải toàn bộ stock về trình duyệt.
     const results = await apiGet(
       `/api/stocks/search?q=${encodeURIComponent(q)}`
     );
@@ -919,11 +948,11 @@ function renderSearchResults(results) {
         <tr>
           <td>
             <strong>${esc(loc.location_code || s.location_code || "")}</strong>
-           <div class="muted-text">
-  ${esc(getAreaName(loc.area_id || s.area_id))} -
-  ${esc(getRowName(loc.area_id || s.area_id, loc.row_no || s.row_no))} -
-  ${esc(getLevelText(loc))}
-</div>
+            <div class="muted-text">
+              ${esc(getAreaName(loc.area_id || s.area_id))} -
+              ${esc(getRowName(loc.area_id || s.area_id, loc.row_no || s.row_no))} -
+              ${esc(getLevelText(loc))}
+            </div>
           </td>
           <td>${esc(s.style_code)}</td>
           <td>${esc(s.po_no)}</td>
@@ -975,10 +1004,10 @@ function buildJumpRows() {
     rowSelect.insertAdjacentHTML(
       "beforeend",
       `<option value="${i}">${
-  isKtpArea(areaId)
-    ? getKtpRowLabel(i)
-    : `Dãy ${String(i).padStart(2, "0")}`
-}</option>`
+        isKtpArea(areaId)
+          ? getKtpRowLabel(i)
+          : `Dãy ${String(i).padStart(2, "0")}`
+      }</option>`
     );
   }
 }
@@ -1014,7 +1043,7 @@ async function jumpToSelectedRow() {
       const target = document.querySelector(`[data-row-jump="${areaId}-${rowNo}"]`);
 
       if (!target) {
-        toast(`Không tìm thấy Dãy ${rowNo}.`);
+        toast(`Không tìm thấy ${isKtpArea(areaId) ? getKtpRowLabel(rowNo) : `Dãy ${rowNo}`}.`);
         return;
       }
 
@@ -1050,6 +1079,7 @@ function setupStockLocationPicker() {
   });
 
   $("stockRow")?.addEventListener("change", () => {
+    toggleStockShelf();
     buildStockSlots();
     resolveStockLocationId();
   });
@@ -1091,10 +1121,10 @@ function buildStockRows(selectedRow = "") {
     rowSelect.insertAdjacentHTML(
       "beforeend",
       `<option value="${rowNo}">${
-  isKtpArea(areaId)
-    ? getKtpRowLabel(rowNo)
-    : `Dãy ${String(rowNo).padStart(2, "0")}`
-}</option>`
+        isKtpArea(areaId)
+          ? getKtpRowLabel(rowNo)
+          : `Dãy ${String(rowNo).padStart(2, "0")}`
+      }</option>`
     );
   });
 
@@ -1103,10 +1133,13 @@ function buildStockRows(selectedRow = "") {
 
 function toggleStockShelf() {
   const areaId = Number($("stockArea")?.value || 1);
+  const rowNo = Number($("stockRow")?.value || 0);
   const shelfGroup = $("stockShelfGroup");
 
-  if (shelfGroup) shelfGroup.style.display = isKtpArea(areaId) ? "" : "none";
-  if (!isKtpArea(areaId) && $("stockShelf")) $("stockShelf").value = "";
+  const showShelf = isKtpArea(areaId) && !isKtpNRow(areaId, rowNo);
+
+  if (shelfGroup) shelfGroup.style.display = showShelf ? "" : "none";
+  if (!showShelf && $("stockShelf")) $("stockShelf").value = "";
 }
 
 function buildStockSlots(selectedSlot = "") {
@@ -1119,14 +1152,19 @@ function buildStockSlots(selectedSlot = "") {
 
   slotSelect.innerHTML = `<option value="">Chọn ô</option>`;
   if (!rowNo) return;
-  if (isKtpArea(areaId) && !shelfNo) return;
+  if (isKtpArea(areaId) && !isKtpNRow(areaId, rowNo) && !shelfNo) return;
 
   const slots = State.allLocations
     .map((loc) => normalizeLocationParts(loc))
     .filter((loc) => {
       if (Number(loc.area_id) !== areaId) return false;
       if (Number(loc.row_no) !== rowNo) return false;
-      if (isKtpArea(areaId)) return Number(loc.shelf_no) === shelfNo;
+
+      if (isKtpArea(areaId)) {
+        if (isKtpNRow(areaId, rowNo)) return true;
+        return Number(loc.shelf_no) === shelfNo;
+      }
+
       return true;
     })
     .map((loc) => Number(loc.slot_no))
@@ -1152,7 +1190,7 @@ function resolveStockLocationId() {
   if ($("stockLocation")) $("stockLocation").value = "";
 
   if (!areaId || !rowNo || !slotNo) return;
-  if (isKtpArea(areaId) && !shelfNo) return;
+  if (isKtpArea(areaId) && !isKtpNRow(areaId, rowNo) && !shelfNo) return;
 
   const found = State.allLocations
     .map((loc) => normalizeLocationParts(loc))
@@ -1160,7 +1198,12 @@ function resolveStockLocationId() {
       if (Number(loc.area_id) !== areaId) return false;
       if (Number(loc.row_no) !== rowNo) return false;
       if (Number(loc.slot_no) !== slotNo) return false;
-      if (isKtpArea(areaId)) return Number(loc.shelf_no) === shelfNo;
+
+      if (isKtpArea(areaId)) {
+        if (isKtpNRow(areaId, rowNo)) return true;
+        return Number(loc.shelf_no) === shelfNo;
+      }
+
       return true;
     });
 
@@ -1174,13 +1217,13 @@ function fillPickerByLocation(locationId) {
   if ($("stockArea")) $("stockArea").value = String(loc.area_id);
 
   resetStockPicker();
-  toggleStockShelf();
   buildStockRows(loc.row_no);
 
-  if (isKtpArea(loc.area_id) && $("stockShelf")) {
+  if (isKtpArea(loc.area_id) && !isKtpNRow(loc.area_id, loc.row_no) && $("stockShelf")) {
     $("stockShelf").value = String(loc.shelf_no);
   }
 
+  toggleStockShelf();
   buildStockSlots(loc.slot_no);
 
   if ($("stockSlot")) $("stockSlot").value = String(loc.slot_no);
@@ -1269,7 +1312,7 @@ async function saveStock() {
     note: clean($("note").value),
   };
 
-  if (!payload.location_id) return toast("Vui lòng chọn đủ Khu vực, Dãy, Kệ/Ô.");
+  if (!payload.location_id) return toast("Vui lòng chọn đủ Khu vực, Dãy, Tầng/Ô.");
   if (!payload.style_code) return toast("Vui lòng nhập mã hàng.");
   if (!payload.po_no) return toast("Vui lòng nhập PO.");
   if (payload.carton_qty < 0) return toast("Số kiện không hợp lệ.");
@@ -1394,8 +1437,8 @@ async function saveRow() {
 
   if (!areaId) return toast("Vui lòng chọn khu vực.");
   if (!rowNo || rowNo < 1) return toast("Số dãy không hợp lệ.");
-  if (isKtpArea(areaId) && rowNo > KTP_MAX_ROWS) {
-    return toast(`Kho thành phẩm chỉ có tối đa ${KTP_MAX_ROWS} dãy.`);
+  if (rowNo > getAreaMaxRows(areaId)) {
+    return toast(`${getAreaName(areaId)} chỉ có tối đa ${getAreaMaxRows(areaId)} dãy.`);
   }
 
   try {
@@ -1449,15 +1492,26 @@ function closeSlotModal() {
 
 function toggleSlotShelfGroup() {
   const areaId = Number($("slotArea")?.value || State.currentAreaId);
+  const rowNo = Number($("slotRowNo")?.value || 0);
   const group = $("slotShelfGroup");
 
   if (!group) return;
 
-  group.style.display = isKtpArea(areaId) ? "" : "none";
+  const showShelf = isKtpArea(areaId) && !isKtpNRow(areaId, rowNo);
+
+  group.style.display = showShelf ? "" : "none";
+
+  if (!showShelf && $("slotShelfNo")) {
+    $("slotShelfNo").value = "";
+  }
 
   if ($("slotCount")) {
-    $("slotCount").max = String(getDefaultSlotsPerRow(areaId));
-    $("slotCount").placeholder = isParkingArea(areaId) ? "VD: 1" : "VD: 3";
+    $("slotCount").max = String(getDefaultSlotsPerRow(areaId, rowNo));
+    $("slotCount").placeholder = isKtpNRow(areaId, rowNo)
+      ? "VD: 30"
+      : isParkingArea(areaId)
+      ? "VD: 1"
+      : "VD: 3";
   }
 
   if ($("slotRowNo")) {
@@ -1479,9 +1533,6 @@ async function saveSlot() {
   if (rowNo > getAreaMaxRows(areaId)) {
     return toast(`${getAreaName(areaId)} chỉ có tối đa ${getAreaMaxRows(areaId)} dãy.`);
   }
-  if (!isKtpArea(areaId) && count > getDefaultSlotsPerRow(areaId)) {
-    return toast(`${getAreaName(areaId)} mỗi dãy tối đa ${getDefaultSlotsPerRow(areaId)} ô.`);
-  }
 
   const payload = {
     area_id: areaId,
@@ -1490,19 +1541,23 @@ async function saveSlot() {
   };
 
   if (isKtpArea(areaId)) {
-    if (rowNo > getAreaMaxRows(areaId)) {
-      return toast(`${getAreaName(areaId)} chỉ có tối đa ${getAreaMaxRows(areaId)} dãy.`);
-    }
+    if (isKtpNRow(areaId, rowNo)) {
+      if (count > KTP_N_SLOTS) {
+        return toast(`Dãy N chỉ có tối đa ${KTP_N_SLOTS} ô.`);
+      }
+    } else {
+      if (!shelfNo || shelfNo < 1 || shelfNo > KTP_SHELVES_PER_ROW) {
+        return toast(`Kho TP chỉ có tầng 1 đến tầng ${KTP_SHELVES_PER_ROW}.`);
+      }
 
-    if (!shelfNo || shelfNo < 1 || shelfNo > KTP_SHELVES_PER_ROW) {
-      return toast(`Kho TP chỉ có kệ 1 đến kệ ${KTP_SHELVES_PER_ROW}.`);
-    }
+      if (count > KTP_SLOTS_PER_SHELF) {
+        return toast(`Mỗi tầng Kho TP chỉ có tối đa ${KTP_SLOTS_PER_SHELF} ô.`);
+      }
 
-    if (count > KTP_SLOTS_PER_SHELF) {
-      return toast(`Mỗi kệ Kho TP chỉ có tối đa ${KTP_SLOTS_PER_SHELF} ô.`);
+      payload.shelf_no = shelfNo;
     }
-
-    payload.shelf_no = shelfNo;
+  } else if (count > getDefaultSlotsPerRow(areaId, rowNo)) {
+    return toast(`${getAreaName(areaId)} mỗi dãy tối đa ${getDefaultSlotsPerRow(areaId, rowNo)} ô.`);
   }
 
   try {
@@ -1548,9 +1603,11 @@ function openDetailModal(locationId) {
 
   $("detailTitle").textContent = loc.location_code;
   $("detailSubTitle").textContent =
-  isKtpArea(loc.area_id)
-    ? `Kho TP - ${getRowName(loc.area_id, loc.row_no)} - Tầng ${loc.shelf_no} - Ô ${getSlotLabel(loc.area_id, loc.slot_no)}`
-    : `${getAreaName(loc.area_id)} - ${getRowName(loc.area_id, loc.row_no)} - Ô ${getSlotLabel(loc.area_id, loc.slot_no || loc.level_no)}`;
+    isKtpArea(loc.area_id)
+      ? isKtpNRow(loc.area_id, loc.row_no)
+        ? `Kho TP - Dãy N - Ô ${getSlotLabel(loc.area_id, loc.slot_no || loc.level_no)}`
+        : `Kho TP - ${getRowName(loc.area_id, loc.row_no)} - Tầng ${loc.shelf_no} - Ô ${getSlotLabel(loc.area_id, loc.slot_no)}`
+      : `${getAreaName(loc.area_id)} - ${getRowName(loc.area_id, loc.row_no)} - Ô ${getSlotLabel(loc.area_id, loc.slot_no || loc.level_no)}`;
 
   if (!stocks.length) {
     $("detailContent").innerHTML = `<div class="empty-state">Vị trí này đang trống.</div>`;
@@ -1777,13 +1834,11 @@ async function createTransferTicket(stockId) {
     toast("Đã tạo phiếu chuyển.");
     closeAllModals();
 
-   await reloadStocksAndLocations();
+    await reloadStocksAndLocations();
 
-// Chỉ tải hàng chờ nhập nếu modal đang mở,
-// tránh tạo phiếu xong lại đọc thêm không cần thiết.
-if (!$("pendingTransferModal")?.classList.contains("hidden")) {
-  await loadPendingTransfers();
-}
+    if (!$("pendingTransferModal")?.classList.contains("hidden")) {
+      await loadPendingTransfers();
+    }
   } catch (err) {
     console.error(err);
     toast(err.message || "Không tạo được phiếu chuyển.");
@@ -1871,8 +1926,6 @@ async function openCompleteTransferModal(transferId) {
   try {
     showLoading(true);
 
-    // Khi nhập hàng chờ vào vị trí mới mới tải đủ vị trí 2 khu.
-    // Không tải lúc mở web để giảm D1 read.
     await loadAllLocationsCached();
 
     $("completeTransferModal")?.classList.remove("hidden");
@@ -1950,6 +2003,7 @@ function setupCompleteTransferPicker() {
   });
 
   $("completeTransferRow")?.addEventListener("change", () => {
+    toggleCompleteTransferShelf();
     buildCompleteTransferSlots();
     resolveCompleteTransferLocationId();
   });
@@ -1999,24 +2053,27 @@ function buildCompleteTransferRows() {
   rowSelect.innerHTML = `<option value="">Chọn dãy</option>`;
 
   rows.forEach((rowNo) => {
-  rowSelect.insertAdjacentHTML(
-    "beforeend",
-    `<option value="${rowNo}">${
-      isKtpArea(areaId)
-        ? `Dãy ${String(rowNo).padStart(2, "0")} - G${rowNo}`
-        : `Dãy ${String(rowNo).padStart(2, "0")}`
-    }</option>`
-  );
-});
+    rowSelect.insertAdjacentHTML(
+      "beforeend",
+      `<option value="${rowNo}">${
+        isKtpArea(areaId)
+          ? getKtpRowLabel(rowNo)
+          : `Dãy ${String(rowNo).padStart(2, "0")}`
+      }</option>`
+    );
+  });
 }
 
 function toggleCompleteTransferShelf() {
   const areaId = Number($("completeTransferArea")?.value || 1);
+  const rowNo = Number($("completeTransferRow")?.value || 0);
   const group = $("completeTransferShelfGroup");
 
-  if (group) group.style.display = isKtpArea(areaId) ? "" : "none";
+  const showShelf = isKtpArea(areaId) && !isKtpNRow(areaId, rowNo);
 
-  if (!isKtpArea(areaId) && $("completeTransferShelf")) {
+  if (group) group.style.display = showShelf ? "" : "none";
+
+  if (!showShelf && $("completeTransferShelf")) {
     $("completeTransferShelf").value = "";
   }
 }
@@ -2032,7 +2089,7 @@ function buildCompleteTransferSlots() {
   slotSelect.innerHTML = `<option value="">Chọn ô</option>`;
 
   if (!rowNo) return;
-  if (isKtpArea(areaId) && !shelfNo) return;
+  if (isKtpArea(areaId) && !isKtpNRow(areaId, rowNo) && !shelfNo) return;
 
   const slots = State.allLocations
     .map((loc) => normalizeLocationParts(loc))
@@ -2041,6 +2098,7 @@ function buildCompleteTransferSlots() {
       if (Number(loc.row_no) !== rowNo) return false;
 
       if (isKtpArea(areaId)) {
+        if (isKtpNRow(areaId, rowNo)) return true;
         return Number(loc.shelf_no) === shelfNo;
       }
 
@@ -2069,7 +2127,7 @@ function resolveCompleteTransferLocationId() {
   }
 
   if (!areaId || !rowNo || !slotNo) return;
-  if (isKtpArea(areaId) && !shelfNo) return;
+  if (isKtpArea(areaId) && !isKtpNRow(areaId, rowNo) && !shelfNo) return;
 
   const found = State.allLocations
     .map((loc) => normalizeLocationParts(loc))
@@ -2079,6 +2137,7 @@ function resolveCompleteTransferLocationId() {
       if (Number(loc.slot_no) !== slotNo) return false;
 
       if (isKtpArea(areaId)) {
+        if (isKtpNRow(areaId, rowNo)) return true;
         return Number(loc.shelf_no) === shelfNo;
       }
 
@@ -2188,6 +2247,7 @@ async function loadAllLocationsForMove() {
       );
     });
 }
+
 /* =========================
    RELOAD
 ========================= */
@@ -2195,8 +2255,6 @@ async function loadAllLocationsForMove() {
 async function reloadStocksAndLocations() {
   await loadCurrentAreaData();
 
-  // Không tự đọc hàng chờ nhập sau mỗi thao tác.
-  // Nếu modal hàng chờ nhập đang mở thì người dùng có thể bấm "Tải lại".
   State.pendingTransfers = State.pendingTransfers || [];
 
   renderAll();
@@ -2220,11 +2278,9 @@ async function exportExcelByArea(exportAll = false) {
     let exportRows = [];
 
     if (exportAll) {
-      // Chỉ khi bấm "Xuất tất cả" mới đọc toàn bộ stock.
       await loadAllLocationsCached();
       exportRows = await apiGet("/api/stocks?status=in_stock&limit=5000");
     } else {
-      // Xuất khu hiện tại thì chỉ đọc khu hiện tại.
       exportRows = await apiGet(
         `/api/stocks?areaId=${exportAreaId}&status=in_stock&limit=5000`
       );
@@ -2302,13 +2358,19 @@ function exportSearchExcel() {
 function buildExcelData(rows) {
   return rows.map((s) => {
     const loc = normalizeLocationParts(getLocationById(s.location_id) || s);
+    const areaId = loc.area_id || s.area_id;
+    const rowNo = loc.row_no || s.row_no;
 
     return {
-      "Khu vực": cleanExcelText(getAreaName(loc.area_id || s.area_id)),
+      "Khu vực": cleanExcelText(getAreaName(areaId)),
       "Mã vị trí": cleanExcelText(loc.location_code || s.location_code),
-      "Dãy": getRowName(loc.area_id || s.area_id, loc.row_no || s.row_no),
-      "Kệ": isKtpArea(loc.area_id || s.area_id) ? Number(loc.shelf_no || 0) : "",
-      "Ô": Number(loc.slot_no || loc.level_no || 0),
+      "Dãy": getRowName(areaId, rowNo),
+      "Kệ": isKtpArea(areaId) && !isKtpNRow(areaId, rowNo)
+        ? Number(loc.shelf_no || 0)
+        : "",
+      "Ô": isParkingArea(areaId)
+        ? getSlotLabel(areaId, loc.slot_no || loc.level_no || 0)
+        : Number(loc.slot_no || loc.level_no || 0),
       "Kệ/Ô": cleanExcelText(getLevelText(loc)),
       "Mã hàng": cleanExcelText(s.style_code),
       "PO": cleanExcelText(s.po_no),
@@ -2481,14 +2543,20 @@ function normalizeLocationParts(loc) {
   if (!loc) return null;
 
   const areaId = Number(loc.area_id || 0);
+  const rowNo = Number(loc.row_no || 0);
   const levelNo = Number(loc.level_no || 0);
 
   let shelfNo = Number(loc.shelf_no || 0);
   let slotNo = Number(loc.slot_no || 0);
 
   if (isKtpArea(areaId)) {
-    if (!shelfNo) shelfNo = Math.floor((levelNo - 1) / KTP_SLOTS_PER_SHELF) + 1;
-    if (!slotNo) slotNo = ((levelNo - 1) % KTP_SLOTS_PER_SHELF) + 1;
+    if (isKtpNRow(areaId, rowNo)) {
+      shelfNo = 0;
+      if (!slotNo) slotNo = levelNo;
+    } else {
+      if (!shelfNo) shelfNo = Math.floor((levelNo - 1) / KTP_SLOTS_PER_SHELF) + 1;
+      if (!slotNo) slotNo = ((levelNo - 1) % KTP_SLOTS_PER_SHELF) + 1;
+    }
   } else {
     shelfNo = 0;
     if (!slotNo) slotNo = levelNo;
@@ -2497,7 +2565,7 @@ function normalizeLocationParts(loc) {
   return {
     ...loc,
     area_id: areaId,
-    row_no: Number(loc.row_no || 0),
+    row_no: rowNo,
     level_no: levelNo,
     shelf_no: shelfNo,
     slot_no: slotNo,
@@ -2510,6 +2578,10 @@ function getLevelText(loc) {
   if (!x) return "";
 
   if (isKtpArea(x.area_id)) {
+    if (isKtpNRow(x.area_id, x.row_no)) {
+      return `Ô ${getSlotLabel(x.area_id, x.slot_no || x.level_no)}`;
+    }
+
     return `Tầng ${x.shelf_no} - Ô ${getSlotLabel(x.area_id, x.slot_no)}`;
   }
 
@@ -2521,6 +2593,10 @@ function getLocationSelectText(loc) {
   if (!x) return "";
 
   if (isKtpArea(x.area_id)) {
+    if (isKtpNRow(x.area_id, x.row_no)) {
+      return `${x.location_code} - Kho TP - Dãy N - Ô ${getSlotLabel(x.area_id, x.slot_no || x.level_no)}`;
+    }
+
     return `${x.location_code} - Kho TP - ${getRowName(x.area_id, x.row_no)} - Tầng ${x.shelf_no} - Ô ${getSlotLabel(x.area_id, x.slot_no)}`;
   }
 
