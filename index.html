@@ -110,7 +110,7 @@
               <span class="area-icon">K</span>
               <div>
                 <strong>Kho thành phẩm</strong>
-                <small>20 dãy: 1, 2, 3, G1-G17. Mỗi dãy 3 tầng, mỗi tầng 6 ô</small>
+                <small>20 dãy chính: 1, 2, 3, G1-G17; mỗi dãy 3 tầng x 6 ô. Thêm Dãy N có 30 ô.</small>
               </div>
             </button>
 
@@ -144,7 +144,7 @@
 
         <div class="sidebar-note">
           <strong>Gợi ý sử dụng</strong>
-          <p>Kho TP quản lý theo Dãy → Tầng → Ô. Lầu 6 và Nhà xe quản lý theo Dãy → Ô.</p>
+          <p>Kho TP quản lý theo Dãy → Tầng → Ô. Riêng Dãy N quản lý theo Dãy → Ô, không chia tầng. Lầu 6 và Nhà xe quản lý theo Dãy → Ô.</p>
         </div>
       </aside>
 
@@ -171,7 +171,7 @@
         <div class="content-header">
           <div>
             <h2 id="currentAreaTitle">Kho thành phẩm</h2>
-            <p id="currentAreaDesc">Sơ đồ Kho thành phẩm: 20 dãy (1, 2, 3, G1-G17), mỗi dãy 3 tầng, mỗi tầng 6 ô</p>
+            <p id="currentAreaDesc">Sơ đồ Kho thành phẩm: 20 dãy chính (1, 2, 3, G1-G17) + Dãy N 30 ô</p>
           </div>
 
           <div class="view-toggle">
@@ -369,7 +369,7 @@
       <div class="modal-header">
         <div>
           <h3>Thêm dãy mới</h3>
-          <p>Kho TP tạo 3 tầng × 6 ô. Lầu 6 tạo 20 ô. Nhà xe tạo 4 ô A-D.</p>
+          <p>Kho TP thường tạo 3 tầng × 6 ô. Riêng Dãy N là dãy số 21, tạo 30 ô và không chia tầng.</p>
         </div>
         <button class="icon-btn" id="btnCloseRowModal">×</button>
       </div>
@@ -386,12 +386,13 @@
 
         <div class="form-group">
           <label>Số dãy mới</label>
-          <input type="number" id="newRowNo" min="1" max="20" placeholder="VD: 4" />
+          <input type="number" id="newRowNo" min="1" max="21" placeholder="VD: 21 để tạo Dãy N" />
         </div>
 
         <div class="form-note">
           <strong>Lưu ý:</strong>
-          Kho thành phẩm có tối đa 20 dãy. Mỗi dãy tạo 18 vị trí: 3 tầng, mỗi tầng 6 ô.
+          Kho thành phẩm có 20 dãy chính: 1, 2, 3, G1-G17. Mỗi dãy chính tạo 18 vị trí: 3 tầng, mỗi tầng 6 ô.
+          Riêng Dãy N là dãy số 21, gồm 30 ô và không chia tầng.
           Lầu 6 có 11 dãy, mỗi dãy 20 ô. Nhà xe có 9 dãy, mỗi dãy 4 ô A, B, C, D.
         </div>
       </div>
@@ -409,7 +410,7 @@
       <div class="modal-header">
         <div>
           <h3>Thêm ô mới</h3>
-          <p>Thêm ô vào tầng của Kho TP hoặc thêm ô vào dãy Lầu 6/Nhà xe</p>
+          <p>Thêm ô vào tầng của Kho TP thường. Riêng Dãy N nhập dãy 21, không cần chọn tầng.</p>
         </div>
         <button class="icon-btn" id="btnCloseSlotModal">×</button>
       </div>
@@ -426,11 +427,11 @@
 
         <div class="form-group">
           <label>Số dãy</label>
-          <input type="number" id="slotRowNo" min="1" max="20" placeholder="VD: 1" />
+          <input type="number" id="slotRowNo" min="1" max="21" placeholder="VD: 21 là Dãy N" />
         </div>
 
         <div class="form-group" id="slotShelfGroup">
-          <label>Số tầng</label>
+          <label>Tầng</label>
           <select id="slotShelfNo">
             <option value="1">Tầng 1</option>
             <option value="2">Tầng 2</option>
@@ -446,7 +447,8 @@
         <div class="form-note">
           <strong>Ví dụ:</strong>
           Kho TP dãy 1 tầng 2 đang có ô 01-04, nhập thêm 2 sẽ tạo ô 05-06.
-          Mỗi tầng Kho TP tối đa 6 ô. Lầu 6 tối đa 20 ô/dãy. Nhà xe tối đa 4 ô A-D.
+          Riêng Dãy N dùng số dãy 21, tối đa 30 ô và không cần chọn tầng.
+          Mỗi tầng Kho TP thường tối đa 6 ô. Lầu 6 tối đa 20 ô/dãy. Nhà xe tối đa 4 ô A-D.
         </div>
       </div>
 
