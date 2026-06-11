@@ -753,6 +753,10 @@ textarea{
   grid-template-columns:repeat(5,minmax(0,1fr));
 }
 
+.four-slot-grid{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+}
+
 /* =========================
    LOCATION BOX
 ========================= */
@@ -1401,7 +1405,7 @@ textarea{
   }
 
   .area-list{
-    grid-template-columns:1fr 1fr;
+    grid-template-columns:repeat(3,minmax(0,1fr));
   }
 
   .twenty-slot-grid{
@@ -1550,7 +1554,8 @@ textarea{
     padding:10px;
   }
 
-  .twenty-slot-grid{
+  .twenty-slot-grid,
+  .four-slot-grid{
     grid-template-columns:repeat(2,minmax(0,1fr));
   }
 
