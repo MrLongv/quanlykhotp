@@ -38,6 +38,9 @@ const State = {
   locations: [],
   allLocations: [],
   stocks: [],
+  stockMapByLocation: new Map(),
+  locationMapById: new Map(),
+  locationIdSet: new Set(),
   searchResults: [],
   pendingTransfers: [],
   selectedLocationId: null,
@@ -248,9 +251,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   try {
-    await loadMe();
+    // Hiện giao diện ngay bằng thông tin user đã lưu,
+    // đồng thời kiểm tra phiên đăng nhập và tải dữ liệu song song để giảm thời gian chờ.
     showApp();
-    await loadInitialData();
+    renderUser();
+
+    await Promise.all([
+      loadMe(),
+      loadInitialData(),
+    ]);
   } catch (err) {
     console.error(err);
     forceLogout("Vui lòng đăng nhập lại.");
@@ -261,12 +270,21 @@ async function loadInitialData() {
   try {
     showLoading(true);
 
+    const tasks = [loadCurrentAreaData()];
+
+    // Khu vực rất ít thay đổi, chỉ đọc lần đầu để giảm request khi bấm Làm mới.
     if (!State.areas.length) {
-      State.areas = await apiGet("/api/areas");
+      tasks.push(
+        apiGet("/api/areas").then((areas) => {
+          State.areas = areas || [];
+        })
+      );
     }
 
-    await loadCurrentAreaData();
+    await Promise.all(tasks);
 
+    // Không tự đọc hàng chờ nhập khi mở web để giảm D1 read.
+    // Chỉ tải khi bấm nút "Hàng chờ nhập".
     State.pendingTransfers = State.pendingTransfers || [];
 
     renderAll();
@@ -282,14 +300,21 @@ async function loadInitialData() {
 async function loadCurrentAreaData() {
   const areaId = Number(State.currentAreaId || 1);
 
+  // Tải vị trí và hàng tồn song song để giảm thời gian chờ.
   const [locations, stocks] = await Promise.all([
     apiGet(`/api/locations?areaId=${areaId}`),
     apiGet(`/api/stocks?areaId=${areaId}&status=in_stock&limit=5000`),
   ]);
 
   State.locations = locations || [];
+
+  // Mặc định chỉ giữ vị trí khu vực đang xem.
+  // Khi cần chuyển hàng sang khu khác mới tải toàn bộ vị trí.
   State.allLocations = [...State.locations];
+  rebuildLocationMaps();
+
   State.stocks = stocks || [];
+  rebuildStockMap();
 }
 
 async function loadAllLocationsCached(force = false) {
@@ -306,6 +331,7 @@ async function loadAllLocationsCached(force = false) {
   }
 
   State.allLocations = await apiGet("/api/locations");
+  rebuildLocationMaps();
   return State.allLocations;
 }
 
@@ -318,6 +344,8 @@ function mergeStocks(rows) {
       State.stocks.push(row);
     }
   });
+
+  rebuildStockMap();
 }
 
 /* =========================
@@ -616,7 +644,12 @@ function renderAll() {
   renderHeader();
   renderSummary();
   renderLocations();
-  renderTable();
+
+  // Bảng có thể rất nhiều dòng, chỉ render khi người dùng đang xem dạng bảng.
+  if (State.viewMode === "table") {
+    renderTable();
+  }
+
   renderPendingBadge();
 }
 
@@ -636,28 +669,26 @@ function renderHeader() {
 }
 
 function renderSummary() {
-  const locationIds = State.locations.map((x) => Number(x.id));
+  const usedLocationIds = new Set();
+  let totalCartons = 0;
 
-  const activeStocks = State.stocks.filter(
-    (s) =>
-      String(s.status || "in_stock") === "in_stock" &&
-      locationIds.includes(Number(s.location_id))
-  );
+  State.stockMapByLocation.forEach((stocks, locationId) => {
+    if (!State.locationIdSet.has(Number(locationId))) return;
+    if (!stocks.length) return;
 
-  const usedLocationIds = new Set(activeStocks.map((s) => Number(s.location_id)));
+    usedLocationIds.add(Number(locationId));
+
+    stocks.forEach((s) => {
+      totalCartons += Number(s.carton_qty || 0);
+    });
+  });
 
   if ($("totalLocations")) $("totalLocations").textContent = State.locations.length;
   if ($("usedLocations")) $("usedLocations").textContent = usedLocationIds.size;
   if ($("emptyLocations")) {
     $("emptyLocations").textContent = Math.max(State.locations.length - usedLocationIds.size, 0);
   }
-
-  if ($("totalCartons")) {
-    $("totalCartons").textContent = activeStocks.reduce(
-      (sum, s) => sum + Number(s.carton_qty || 0),
-      0
-    );
-  }
+  if ($("totalCartons")) $("totalCartons").textContent = totalCartons;
 }
 
 function renderPendingBadge() {
@@ -2242,6 +2273,12 @@ function switchView(mode) {
 
   $("warehouseGrid")?.classList.toggle("hidden", mode !== "grid");
   $("tablePanel")?.classList.toggle("hidden", mode !== "table");
+
+  if (mode === "table") {
+    renderTable();
+  } else {
+    renderLocations();
+  }
 }
 
 /* =========================
@@ -2511,20 +2548,47 @@ function editStockFromAnyModal(stockId) {
    HELPERS
 ========================= */
 
+function rebuildStockMap() {
+  State.stockMapByLocation = new Map();
+
+  (State.stocks || [])
+    .filter((s) => String(s.status || "in_stock") === "in_stock")
+    .forEach((s) => {
+      const locationId = Number(s.location_id);
+      if (!locationId) return;
+
+      if (!State.stockMapByLocation.has(locationId)) {
+        State.stockMapByLocation.set(locationId, []);
+      }
+
+      State.stockMapByLocation.get(locationId).push(s);
+    });
+}
+
+function rebuildLocationMaps() {
+  State.locationMapById = new Map();
+  State.locationIdSet = new Set();
+
+  (State.allLocations || []).forEach((loc) => {
+    const id = Number(loc.id);
+    if (!id) return;
+    State.locationMapById.set(id, loc);
+  });
+
+  (State.locations || []).forEach((loc) => {
+    const id = Number(loc.id);
+    if (!id) return;
+    State.locationIdSet.add(id);
+    State.locationMapById.set(id, loc);
+  });
+}
+
 function getStocksByLocation(locationId) {
-  return State.stocks.filter(
-    (s) =>
-      Number(s.location_id) === Number(locationId) &&
-      String(s.status || "in_stock") === "in_stock"
-  );
+  return State.stockMapByLocation.get(Number(locationId)) || [];
 }
 
 function getLocationById(id) {
-  return (
-    State.allLocations?.find((x) => Number(x.id) === Number(id)) ||
-    State.locations.find((x) => Number(x.id) === Number(id)) ||
-    null
-  );
+  return State.locationMapById.get(Number(id)) || null;
 }
 
 function getAreaName(areaId) {
