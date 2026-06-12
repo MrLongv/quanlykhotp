@@ -261,12 +261,12 @@ async function loadInitialData() {
   try {
     showLoading(true);
 
-    State.areas = await apiGet("/api/areas");
+    if (!State.areas.length) {
+      State.areas = await apiGet("/api/areas");
+    }
 
     await loadCurrentAreaData();
 
-    // Không tự đọc hàng chờ nhập khi mở web để giảm D1 read.
-    // Chỉ tải khi bấm nút "Hàng chờ nhập".
     State.pendingTransfers = State.pendingTransfers || [];
 
     renderAll();
@@ -282,15 +282,14 @@ async function loadInitialData() {
 async function loadCurrentAreaData() {
   const areaId = Number(State.currentAreaId || 1);
 
-  State.locations = await apiGet(`/api/locations?areaId=${areaId}`);
+  const [locations, stocks] = await Promise.all([
+    apiGet(`/api/locations?areaId=${areaId}`),
+    apiGet(`/api/stocks?areaId=${areaId}&status=in_stock&limit=5000`),
+  ]);
 
-  // Mặc định chỉ giữ vị trí khu vực đang xem.
-  // Khi cần chuyển hàng sang khu khác mới tải toàn bộ vị trí.
+  State.locations = locations || [];
   State.allLocations = [...State.locations];
-
-  State.stocks = await apiGet(
-    `/api/stocks?areaId=${areaId}&status=in_stock&limit=5000`
-  );
+  State.stocks = stocks || [];
 }
 
 async function loadAllLocationsCached(force = false) {
