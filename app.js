@@ -8,7 +8,7 @@ const KTP_G_SLOTS = 11;
 const KTP_MAX_ROWS = 22;
 
 const KTP_SHELVES_PER_ROW = 3;
-const KTP_SLOTS_PER_SHELF = 6;
+const KTP_SLOTS_PER_SHELF = 12;
 const L6_MAX_ROWS = 11;
 const L6_DEFAULT_SLOTS_PER_ROW = 20;
 const NX_MAX_ROWS = 9;
@@ -661,7 +661,7 @@ function renderHeader() {
   if ($("currentAreaDesc")) {
     $("currentAreaDesc").textContent =
       isKtpArea(State.currentAreaId)
-        ? `Sơ đồ Kho thành phẩm: 20 dãy chính (${getKtpRowLabel(1)}, ${getKtpRowLabel(2)}, ${getKtpRowLabel(3)}, G1-G17) + Dãy N 30 ô + Dãy G 11 ô`
+        ? `Sơ đồ Kho thành phẩm: 20 dãy chính (${getKtpRowLabel(1)}, ${getKtpRowLabel(2)}, ${getKtpRowLabel(3)}, G1-G17), mỗi tầng ${KTP_SLOTS_PER_SHELF} ô + Dãy N 30 ô + Dãy G 11 ô`
         : isParkingArea(State.currentAreaId)
         ? `Sơ đồ Nhà xe: ${NX_MAX_ROWS} dãy, mỗi dãy 4 ô A, B, C, D`
         : `Sơ đồ Lầu 6: ${L6_MAX_ROWS} dãy, mỗi dãy ${L6_DEFAULT_SLOTS_PER_ROW} ô`;
