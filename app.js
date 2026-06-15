@@ -2,10 +2,12 @@ const API_BASE = "https://warehouse-api.longvanasb.workers.dev";
 
 const KTP_NORMAL_MAX_ROWS = 20;
 const KTP_N_ROW_NO = 21;
-const KTP_N_SLOTS = 30;
-const KTP_G_ROW_NO = 22;
-const KTP_G_SLOTS = 11;
-const KTP_MAX_ROWS = 22;
+const KTP_N_SLOTS = 32;
+const KTP_M_START_ROW_NO = 22;
+const KTP_M_COUNT = 11;
+const KTP_M_SLOTS = 12;
+const KTP_M_END_ROW_NO = KTP_M_START_ROW_NO + KTP_M_COUNT - 1;
+const KTP_MAX_ROWS = KTP_M_END_ROW_NO;
 
 const KTP_SHELVES_PER_ROW = 3;
 const KTP_SLOTS_PER_SHELF = 12;
@@ -70,7 +72,7 @@ function getDefaultSlotsPerRow(areaId, rowNo = 0) {
   const code = getAreaCodeById(areaId);
 
   if (code === "KTP" && Number(rowNo) === KTP_N_ROW_NO) return KTP_N_SLOTS;
-  if (code === "KTP" && Number(rowNo) === KTP_G_ROW_NO) return KTP_G_SLOTS;
+  if (code === "KTP" && isKtpMRow(rowNo)) return KTP_M_SLOTS;
   if (code === "KTP") return KTP_SLOTS_PER_SHELF;
   if (code === "L6") return L6_DEFAULT_SLOTS_PER_ROW;
   if (code === "NX") return NX_DEFAULT_SLOTS_PER_ROW;
@@ -82,10 +84,22 @@ function isKtpArea(areaId) {
   return getAreaCodeById(areaId) === "KTP";
 }
 
+function isKtpMRow(rowNo) {
+  const row = Number(rowNo || 0);
+  return row >= KTP_M_START_ROW_NO && row <= KTP_M_END_ROW_NO;
+}
+
+function getKtpMIndex(rowNo) {
+  return Number(rowNo || 0) - KTP_M_START_ROW_NO + 1;
+}
+
 function getKtpSpecialRow(rowNo) {
   const row = Number(rowNo || 0);
   if (row === KTP_N_ROW_NO) return { code: "N", label: "Dãy N", slots: KTP_N_SLOTS };
-  if (row === KTP_G_ROW_NO) return { code: "G", label: "Dãy G", slots: KTP_G_SLOTS };
+  if (isKtpMRow(row)) {
+    const idx = getKtpMIndex(row);
+    return { code: `M${idx}`, label: `M${idx}`, slots: KTP_M_SLOTS };
+  }
   return null;
 }
 
@@ -661,7 +675,7 @@ function renderHeader() {
   if ($("currentAreaDesc")) {
     $("currentAreaDesc").textContent =
       isKtpArea(State.currentAreaId)
-        ? `Sơ đồ Kho thành phẩm: 20 dãy chính (${getKtpRowLabel(1)}, ${getKtpRowLabel(2)}, ${getKtpRowLabel(3)}, G1-G17), mỗi tầng ${KTP_SLOTS_PER_SHELF} ô + Dãy N 30 ô + Dãy G 11 ô`
+        ? `Sơ đồ Kho thành phẩm: 20 dãy chính (${getKtpRowLabel(1)}, ${getKtpRowLabel(2)}, ${getKtpRowLabel(3)}, G1-G17), mỗi tầng ${KTP_SLOTS_PER_SHELF} ô + Dãy N ${KTP_N_SLOTS} ô + M1-M11, mỗi dãy ${KTP_M_SLOTS} ô`
         : isParkingArea(State.currentAreaId)
         ? `Sơ đồ Nhà xe: ${NX_MAX_ROWS} dãy, mỗi dãy 4 ô A, B, C, D`
         : `Sơ đồ Lầu 6: ${L6_MAX_ROWS} dãy, mỗi dãy ${L6_DEFAULT_SLOTS_PER_ROW} ô`;
