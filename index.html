@@ -118,7 +118,7 @@
               <span class="area-icon">6</span>
               <div>
                 <strong>Lầu 6</strong>
-                <small>11 dãy, mỗi dãy 20 ô</small>
+                <small>15 dãy, mỗi dãy 22 ô</small>
               </div>
             </button>
 
@@ -369,7 +369,7 @@
       <div class="modal-header">
         <div>
           <h3>Thêm dãy mới</h3>
-          <p>Kho TP thường tạo 3 tầng × 12 ô. Dãy N tạo 32 ô. M1-M11 tạo 12 ô/dãy, 1 tầng. Lầu 6 tạo 20 ô. Nhà xe tạo 4 ô A-D.</p>
+          <p>Kho TP thường tạo 3 tầng × 12 ô. Dãy N tạo 32 ô. M1-M11 tạo 12 ô/dãy, 1 tầng. Lầu 6 tạo 22 ô. Nhà xe tạo 4 ô A-D.</p>
         </div>
         <button class="icon-btn" id="btnCloseRowModal">×</button>
       </div>
@@ -392,7 +392,7 @@
         <div class="form-note">
           <strong>Lưu ý:</strong>
           Kho thành phẩm có 20 dãy chính: 1, 2, 3, G1-G17; mỗi dãy 3 tầng, mỗi tầng 12 ô. Dãy N là dãy số 21 gồm 32 ô, không chia tầng. M1-M11 là dãy số 22 đến 32, mỗi dãy 12 ô, 1 tầng.
-          Lầu 6 có 11 dãy, mỗi dãy 20 ô. Nhà xe có 9 dãy, mỗi dãy 4 ô A, B, C, D.
+          Lầu 6 có 15 dãy, mỗi dãy 22 ô. Nhà xe có 9 dãy, mỗi dãy 4 ô A, B, C, D.
         </div>
       </div>
 
@@ -445,7 +445,7 @@
 
         <div class="form-note">
           <strong>Ví dụ:</strong>
-          Kho TP thường: chọn dãy 1-20 và tầng, mỗi tầng tối đa 12 ô. Dãy N nhập dãy 21, tối đa 32 ô, không cần tầng. M1-M11 nhập dãy 22-32, mỗi dãy tối đa 12 ô, không cần tầng. Lầu 6 tối đa 20 ô/dãy. Nhà xe tối đa 4 ô A-D.
+          Kho TP thường: chọn dãy 1-20 và tầng, mỗi tầng tối đa 12 ô. Dãy N nhập dãy 21, tối đa 32 ô, không cần tầng. M1-M11 nhập dãy 22-32, mỗi dãy tối đa 12 ô, không cần tầng. Lầu 6 tối đa 22 ô/dãy. Nhà xe tối đa 4 ô A-D.
         </div>
       </div>
 
@@ -532,6 +532,22 @@
       </div>
 
       <div class="modal-body">
+        <div class="log-search-bar">
+          <div class="search-box log-search-box">
+            <span class="search-icon">⌕</span>
+            <input
+              type="search"
+              id="logsSearchInput"
+              placeholder="Tìm nhật ký theo người thao tác, mã hàng, PO, nội dung hoặc vị trí..."
+              autocomplete="off"
+              enterkeyhint="search"
+            />
+          </div>
+
+          <button class="btn primary" id="btnSearchLogs">Tìm nhật ký</button>
+          <button class="btn ghost" id="btnClearLogsSearch">Xóa</button>
+        </div>
+
         <div class="table-wrap">
           <table class="data-table">
             <thead>
