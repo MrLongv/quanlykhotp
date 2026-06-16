@@ -11,8 +11,8 @@ const KTP_MAX_ROWS = KTP_M_END_ROW_NO;
 
 const KTP_SHELVES_PER_ROW = 3;
 const KTP_SLOTS_PER_SHELF = 12;
-const L6_MAX_ROWS = 11;
-const L6_DEFAULT_SLOTS_PER_ROW = 20;
+const L6_MAX_ROWS = 15;
+const L6_DEFAULT_SLOTS_PER_ROW = 22;
 const NX_MAX_ROWS = 9;
 const NX_DEFAULT_SLOTS_PER_ROW = 4;
 const NX_SLOT_LABELS = ["A", "B", "C", "D"];
@@ -516,6 +516,17 @@ function bindEvents() {
   $("btnCloseLogsModal")?.addEventListener("click", closeLogsModal);
   $("btnCloseLogs")?.addEventListener("click", closeLogsModal);
   $("btnReloadLogs")?.addEventListener("click", loadLogs);
+  $("btnSearchLogs")?.addEventListener("click", loadLogs);
+  $("btnClearLogsSearch")?.addEventListener("click", () => {
+    if ($("logsSearchInput")) $("logsSearchInput").value = "";
+    loadLogs();
+  });
+  $("logsSearchInput")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      loadLogs();
+    }
+  });
 
   $("btnSearch")?.addEventListener("click", handleSearch);
 
@@ -2240,12 +2251,14 @@ async function loadLogs() {
   try {
     showLoading(true);
 
-    const logs = await apiGet("/api/logs?limit=200");
+    const q = clean($("logsSearchInput")?.value || "");
+    const url = `/api/logs?limit=300${q ? `&q=${encodeURIComponent(q)}` : ""}`;
+    const logs = await apiGet(url);
 
     if (!logs.length) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="8" class="text-center">Chưa có nhật ký thao tác.</td>
+          <td colspan="8" class="text-center">${q ? "Không tìm thấy nhật ký phù hợp." : "Chưa có nhật ký thao tác."}</td>
         </tr>
       `;
       return;
@@ -2274,7 +2287,6 @@ async function loadLogs() {
     showLoading(false);
   }
 }
-
 /* =========================
    VIEW
 ========================= */
