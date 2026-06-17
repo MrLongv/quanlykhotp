@@ -13,6 +13,8 @@ const KTP_SHELVES_PER_ROW = 3;
 const KTP_SLOTS_PER_SHELF = 12;
 const L6_MAX_ROWS = 15;
 const L6_DEFAULT_SLOTS_PER_ROW = 22;
+const L1_MAX_ROWS = 1;
+const L1_DEFAULT_SLOTS_PER_ROW = 30;
 const NX_MAX_ROWS = 9;
 const NX_DEFAULT_SLOTS_PER_ROW = 4;
 const NX_SLOT_LABELS = ["A", "B", "C", "D"];
@@ -55,6 +57,7 @@ function getAreaCodeById(areaId) {
   if (id === 1) return "KTP";
   if (id === 2) return "L6";
   if (id === 3) return "NX";
+  if (id === 4) return "L1";
 
   const area = State.areas.find((x) => Number(x.id) === id);
   return area?.code || "";
@@ -65,6 +68,7 @@ function getAreaMaxRows(areaId) {
   if (code === "KTP") return KTP_MAX_ROWS;
   if (code === "L6") return L6_MAX_ROWS;
   if (code === "NX") return NX_MAX_ROWS;
+  if (code === "L1") return L1_MAX_ROWS;
   return 20;
 }
 
@@ -75,6 +79,7 @@ function getDefaultSlotsPerRow(areaId, rowNo = 0) {
   if (code === "KTP" && isKtpMRow(rowNo)) return KTP_M_SLOTS;
   if (code === "KTP") return KTP_SLOTS_PER_SHELF;
   if (code === "L6") return L6_DEFAULT_SLOTS_PER_ROW;
+  if (code === "L1") return L1_DEFAULT_SLOTS_PER_ROW;
   if (code === "NX") return NX_DEFAULT_SLOTS_PER_ROW;
 
   return 20;
@@ -334,7 +339,7 @@ async function loadCurrentAreaData() {
 async function loadAllLocationsCached(force = false) {
   const areaIds = State.areas.length
     ? State.areas.map((x) => Number(x.id)).filter(Boolean)
-    : [1, 2, 3];
+    : [1, 2, 3, 4];
 
   const hasAllAreas = areaIds.every((id) =>
     State.allLocations.some((x) => Number(x.area_id) === id)
@@ -689,6 +694,8 @@ function renderHeader() {
         ? `Sơ đồ Kho thành phẩm: 20 dãy chính (${getKtpRowLabel(1)}, ${getKtpRowLabel(2)}, ${getKtpRowLabel(3)}, G1-G17), mỗi tầng ${KTP_SLOTS_PER_SHELF} ô + Dãy N ${KTP_N_SLOTS} ô + M1-M11, mỗi dãy ${KTP_M_SLOTS} ô`
         : isParkingArea(State.currentAreaId)
         ? `Sơ đồ Nhà xe: ${NX_MAX_ROWS} dãy, mỗi dãy 4 ô A, B, C, D`
+        : getAreaCodeById(State.currentAreaId) === "L1"
+        ? `Sơ đồ Lầu 1: 1 khu, ${L1_DEFAULT_SLOTS_PER_ROW} ô`
         : `Sơ đồ Lầu 6: ${L6_MAX_ROWS} dãy, mỗi dãy ${L6_DEFAULT_SLOTS_PER_ROW} ô`;
   }
 }
@@ -1073,11 +1080,7 @@ function buildJumpRows() {
   for (let i = 1; i <= maxRow; i++) {
     rowSelect.insertAdjacentHTML(
       "beforeend",
-      `<option value="${i}">${
-  isKtpArea(areaId)
-    ? getKtpRowLabel(i)
-    : `Dãy ${String(i).padStart(2, "0")}`
-}</option>`
+      `<option value="${i}">${getRowName(areaId, i)}</option>`
     );
   }
 }
@@ -1190,11 +1193,7 @@ function buildStockRows(selectedRow = "") {
   rows.forEach((rowNo) => {
     rowSelect.insertAdjacentHTML(
       "beforeend",
-      `<option value="${rowNo}">${
-  isKtpArea(areaId)
-    ? getKtpRowLabel(rowNo)
-    : `Dãy ${String(rowNo).padStart(2, "0")}`
-}</option>`
+      `<option value="${rowNo}">${getRowName(areaId, rowNo)}</option>`
     );
   });
 
@@ -1678,6 +1677,8 @@ function openDetailModal(locationId) {
       ? isKtpSpecialRow(loc.area_id, loc.row_no)
         ? `Kho TP - ${getRowName(loc.area_id, loc.row_no)} - Ô ${getSlotLabel(loc.area_id, loc.slot_no || loc.level_no)}`
         : `Kho TP - ${getRowName(loc.area_id, loc.row_no)} - Tầng ${loc.shelf_no} - Ô ${getSlotLabel(loc.area_id, loc.slot_no)}`
+      : getAreaCodeById(loc.area_id) === "L1"
+      ? `Lầu 1 - Ô ${getSlotLabel(loc.area_id, loc.slot_no || loc.level_no)}`
       : `${getAreaName(loc.area_id)} - ${getRowName(loc.area_id, loc.row_no)} - Ô ${getSlotLabel(loc.area_id, loc.slot_no || loc.level_no)}`;
 
   if (!stocks.length) {
@@ -2130,11 +2131,7 @@ function buildCompleteTransferRows() {
   rows.forEach((rowNo) => {
   rowSelect.insertAdjacentHTML(
     "beforeend",
-    `<option value="${rowNo}">${
-      isKtpArea(areaId)
-        ? getKtpRowLabel(rowNo)
-        : `Dãy ${String(rowNo).padStart(2, "0")}`
-    }</option>`
+    `<option value="${rowNo}">${getRowName(areaId, rowNo)}</option>`
   );
 });
 }
@@ -2287,6 +2284,7 @@ async function loadLogs() {
     showLoading(false);
   }
 }
+
 /* =========================
    VIEW
 ========================= */
@@ -2391,6 +2389,8 @@ async function exportExcelByArea(exportAll = false) {
         ? "Kho thanh pham"
         : exportAreaId === 2
         ? "Lau 6"
+        : exportAreaId === 4
+        ? "Lau 1"
         : "Nha xe",
       exportAreaId === 0
         ? `ton-kho-toan-bo-${todayText()}.xlsx`
@@ -2398,6 +2398,8 @@ async function exportExcelByArea(exportAll = false) {
         ? `ton-kho-thanh-pham-${todayText()}.xlsx`
         : exportAreaId === 2
         ? `ton-kho-lau-6-${todayText()}.xlsx`
+        : exportAreaId === 4
+        ? `ton-kho-lau-1-${todayText()}.xlsx`
         : `ton-kho-nha-xe-${todayText()}.xlsx`
     );
 
@@ -2622,6 +2624,7 @@ function getAreaName(areaId) {
   if (id === 1) return "Kho thành phẩm";
   if (id === 2) return "Lầu 6";
   if (id === 3) return "Nhà xe";
+  if (id === 4) return "Lầu 1";
 
   const area = State.areas.find((x) => Number(x.id) === id);
   return area?.name || "";
@@ -2635,6 +2638,10 @@ function getRowName(areaId, rowNo) {
     return getKtpRowLabel(row);
   }
 
+  if (getAreaCodeById(areaId) === "L1") {
+    return "Lầu 1";
+  }
+
   return `Dãy ${row}`;
 }
 
@@ -2644,6 +2651,10 @@ function getRowBadgeName(areaId, rowNo) {
 
   if (isKtpArea(areaId)) {
     return getKtpRowLabel(row).toUpperCase();
+  }
+
+  if (getAreaCodeById(areaId) === "L1") {
+    return "LẦU 1";
   }
 
   return `DÃY ${String(row).padStart(2, "0")}`;
@@ -2708,6 +2719,10 @@ function getLocationSelectText(loc) {
     }
 
     return `${x.location_code} - Kho TP - ${getRowName(x.area_id, x.row_no)} - Tầng ${x.shelf_no} - Ô ${getSlotLabel(x.area_id, x.slot_no)}`;
+  }
+
+  if (getAreaCodeById(x.area_id) === "L1") {
+    return `${x.location_code} - Lầu 1 - Ô ${getSlotLabel(x.area_id, x.slot_no || x.level_no)}`;
   }
 
   return `${x.location_code} - ${getAreaName(x.area_id)} - ${getRowName(x.area_id, x.row_no)} - Ô ${getSlotLabel(x.area_id, x.slot_no || x.level_no)}`;
