@@ -72,6 +72,7 @@
     <select id="jumpArea">
       <option value="1">Kho thành phẩm</option>
       <option value="2">Lầu 6</option>
+      <option value="4">Lầu 1</option>
       <option value="3">Nhà xe</option>
     </select>
 
@@ -122,6 +123,14 @@
               </div>
             </button>
 
+            <button class="area-item" data-area-id="4" data-area-code="L1">
+              <span class="area-icon">1</span>
+              <div>
+                <strong>Lầu 1</strong>
+                <small>1 khu, 30 ô</small>
+              </div>
+            </button>
+
             <button class="area-item" data-area-id="3" data-area-code="NX">
               <span class="area-icon">X</span>
               <div>
@@ -144,7 +153,7 @@
 
         <div class="sidebar-note">
           <strong>Gợi ý sử dụng</strong>
-          <p>Kho TP thường quản lý theo Dãy → Tầng → Ô. Riêng Dãy N và M1-M11 quản lý theo Dãy → Ô. Lầu 6 và Nhà xe quản lý theo Dãy → Ô.</p>
+          <p>Kho TP thường quản lý theo Dãy → Tầng → Ô. Riêng Dãy N và M1-M11 quản lý theo Dãy → Ô. Lầu 6, Lầu 1 và Nhà xe quản lý theo Dãy → Ô.</p>
         </div>
       </aside>
 
@@ -255,6 +264,7 @@
             <select id="stockArea">
               <option value="1">Kho thành phẩm</option>
               <option value="2">Lầu 6</option>
+              <option value="4">Lầu 1</option>
               <option value="3">Nhà xe</option>
             </select>
           </div>
@@ -380,6 +390,7 @@
           <select id="rowArea">
             <option value="1">Kho thành phẩm</option>
             <option value="2">Lầu 6</option>
+            <option value="4">Lầu 1</option>
             <option value="3">Nhà xe</option>
           </select>
         </div>
@@ -392,7 +403,7 @@
         <div class="form-note">
           <strong>Lưu ý:</strong>
           Kho thành phẩm có 20 dãy chính: 1, 2, 3, G1-G17; mỗi dãy 3 tầng, mỗi tầng 12 ô. Dãy N là dãy số 21 gồm 32 ô, không chia tầng. M1-M11 là dãy số 22 đến 32, mỗi dãy 12 ô, 1 tầng.
-          Lầu 6 có 15 dãy, mỗi dãy 22 ô. Nhà xe có 9 dãy, mỗi dãy 4 ô A, B, C, D.
+          Lầu 6 có 15 dãy, mỗi dãy 22 ô. Lầu 1 có 30 ô. Nhà xe có 9 dãy, mỗi dãy 4 ô A, B, C, D.
         </div>
       </div>
 
@@ -409,7 +420,7 @@
       <div class="modal-header">
         <div>
           <h3>Thêm ô mới</h3>
-          <p>Thêm ô vào tầng của Kho TP thường, hoặc thêm ô vào Dãy N/M1-M11/Lầu 6/Nhà xe</p>
+          <p>Thêm ô vào tầng của Kho TP thường, hoặc thêm ô vào Dãy N/M1-M11/Lầu 6/Lầu 1/Nhà xe</p>
         </div>
         <button class="icon-btn" id="btnCloseSlotModal">×</button>
       </div>
@@ -420,6 +431,7 @@
           <select id="slotArea">
             <option value="1">Kho thành phẩm</option>
             <option value="2">Lầu 6</option>
+            <option value="4">Lầu 1</option>
             <option value="3">Nhà xe</option>
           </select>
         </div>
@@ -445,7 +457,7 @@
 
         <div class="form-note">
           <strong>Ví dụ:</strong>
-          Kho TP thường: chọn dãy 1-20 và tầng, mỗi tầng tối đa 12 ô. Dãy N nhập dãy 21, tối đa 32 ô, không cần tầng. M1-M11 nhập dãy 22-32, mỗi dãy tối đa 12 ô, không cần tầng. Lầu 6 tối đa 22 ô/dãy. Nhà xe tối đa 4 ô A-D.
+          Kho TP thường: chọn dãy 1-20 và tầng, mỗi tầng tối đa 12 ô. Dãy N nhập dãy 21, tối đa 32 ô, không cần tầng. M1-M11 nhập dãy 22-32, mỗi dãy tối đa 12 ô, không cần tầng. Lầu 6 tối đa 22 ô/dãy. Lầu 1 tối đa 30 ô. Nhà xe tối đa 4 ô A-D.
         </div>
       </div>
 
@@ -628,6 +640,7 @@
           <select id="completeTransferArea">
             <option value="1">Kho thành phẩm</option>
             <option value="2">Lầu 6</option>
+            <option value="4">Lầu 1</option>
             <option value="3">Nhà xe</option>
           </select>
         </div>
