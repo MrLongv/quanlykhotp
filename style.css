@@ -1910,7 +1910,7 @@ textarea{
 
 .log-search-bar{
   display:grid;
-  grid-template-columns:1fr auto auto;
+  grid-template-columns:minmax(0,1fr) auto auto;
   gap:8px;
   align-items:center;
   margin-bottom:12px;
@@ -1918,15 +1918,13 @@ textarea{
 
 .log-search-box{
   height:42px;
-  margin:0;
 }
 
 .log-search-bar .btn{
-  height:42px;
   min-height:42px;
 }
 
-@media(max-width:640px){
+@media(max-width:760px){
   .log-search-bar{
     grid-template-columns:1fr;
   }
