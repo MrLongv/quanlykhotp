@@ -586,6 +586,7 @@ function bindEvents() {
   setupBackTopButton();
   bindModalEvents();
   setupStockLocationPicker();
+  setupMoveLocationPicker();
   setupCompleteTransferPicker();
   setupQuickJump();
 }
@@ -1433,7 +1434,27 @@ async function openMoveModal(stockId) {
     </div>
   `;
 
-  await loadAllLocationsForMove();
+  try {
+    showLoading(true);
+
+    // Chỉ khi mở chuyển vị trí mới tải toàn bộ vị trí để giảm D1 read lúc mở web.
+    await loadAllLocationsCached();
+
+    resetMovePicker();
+
+    if ($("moveArea")) {
+      $("moveArea").value = String(loc.area_id || State.currentAreaId || 1);
+    }
+
+    buildMoveRows();
+    toggleMoveShelf();
+    updateMoveSelectedInfo();
+  } catch (err) {
+    console.error(err);
+    toast("Không tải được danh sách vị trí chuyển.");
+  } finally {
+    showLoading(false);
+  }
 }
 
 function closeMoveModal(clear = true) {
@@ -1443,17 +1464,25 @@ function closeMoveModal(clear = true) {
   if (clear) {
     if ($("moveStockId")) $("moveStockId").value = "";
     if ($("moveReason")) $("moveReason").value = "";
+    resetMovePicker();
   }
 }
 
 async function confirmMove() {
   if (!canEdit()) return toast("Bạn không có quyền chuyển vị trí.");
 
-  const stockId = $("moveStockId").value;
-  const newLocationId = Number($("moveLocation").value);
-  const reason = clean($("moveReason").value);
+  resolveMoveLocationId();
 
-  if (!newLocationId) return toast("Vui lòng chọn vị trí mới.");
+  const stockId = $("moveStockId").value;
+  const newLocationId = Number($("moveLocation")?.value || 0);
+  const reason = clean($("moveReason")?.value || "");
+
+  if (!newLocationId) return toast("Vui lòng chọn đủ Khu vực, Dãy, Tầng/Ô cần chuyển đến.");
+
+  const currentStock = State.stocks.find((x) => Number(x.id) === Number(stockId));
+  if (currentStock && Number(currentStock.location_id) === newLocationId) {
+    return toast("Vị trí mới đang trùng với vị trí hiện tại.");
+  }
 
   try {
     showLoading(true);
@@ -1472,6 +1501,185 @@ async function confirmMove() {
   } finally {
     showLoading(false);
   }
+}
+
+/* =========================
+   MOVE LOCATION PICKER
+========================= */
+
+function setupMoveLocationPicker() {
+  $("moveArea")?.addEventListener("change", () => {
+    resetMovePicker(false);
+    buildMoveRows();
+    toggleMoveShelf();
+    updateMoveSelectedInfo();
+  });
+
+  $("moveRow")?.addEventListener("change", () => {
+    toggleMoveShelf();
+    buildMoveSlots();
+    resolveMoveLocationId();
+  });
+
+  $("moveShelf")?.addEventListener("change", () => {
+    buildMoveSlots();
+    resolveMoveLocationId();
+  });
+
+  $("moveSlot")?.addEventListener("change", () => {
+    resolveMoveLocationId();
+  });
+}
+
+function resetMovePicker(resetArea = true) {
+  if (resetArea && $("moveArea")) $("moveArea").value = String(State.currentAreaId || 1);
+  if ($("moveRow")) $("moveRow").innerHTML = `<option value="">Chọn dãy</option>`;
+  if ($("moveShelf")) $("moveShelf").value = "";
+  if ($("moveSlot")) $("moveSlot").innerHTML = `<option value="">Chọn ô</option>`;
+  if ($("moveLocation")) $("moveLocation").value = "";
+  updateMoveSelectedInfo();
+}
+
+function buildMoveRows(selectedRow = "") {
+  const areaId = Number($("moveArea")?.value || State.currentAreaId || 1);
+  const rowSelect = $("moveRow");
+  if (!rowSelect) return;
+
+  const rows = [
+    ...new Set(
+      State.allLocations
+        .filter((loc) => Number(loc.area_id) === areaId)
+        .map((loc) => Number(loc.row_no))
+        .filter(Boolean)
+    ),
+  ].sort((a, b) => a - b);
+
+  rowSelect.innerHTML = `<option value="">Chọn dãy</option>`;
+
+  rows.forEach((rowNo) => {
+    rowSelect.insertAdjacentHTML(
+      "beforeend",
+      `<option value="${rowNo}">${getRowName(areaId, rowNo)}</option>`
+    );
+  });
+
+  if (selectedRow) rowSelect.value = String(selectedRow);
+}
+
+function toggleMoveShelf() {
+  const areaId = Number($("moveArea")?.value || State.currentAreaId || 1);
+  const rowNo = Number($("moveRow")?.value || 0);
+  const group = $("moveShelfGroup");
+
+  const showShelf = isKtpArea(areaId) && !isKtpSpecialRow(areaId, rowNo);
+
+  if (group) group.style.display = showShelf ? "" : "none";
+  if (!showShelf && $("moveShelf")) $("moveShelf").value = "";
+}
+
+function buildMoveSlots(selectedSlot = "") {
+  const areaId = Number($("moveArea")?.value || State.currentAreaId || 1);
+  const rowNo = Number($("moveRow")?.value || 0);
+  const shelfNo = Number($("moveShelf")?.value || 0);
+  const slotSelect = $("moveSlot");
+
+  if (!slotSelect) return;
+
+  slotSelect.innerHTML = `<option value="">Chọn ô</option>`;
+  if (!rowNo) return;
+  if (isKtpArea(areaId) && !isKtpSpecialRow(areaId, rowNo) && !shelfNo) return;
+
+  const slots = State.allLocations
+    .map((loc) => normalizeLocationParts(loc))
+    .filter((loc) => {
+      if (Number(loc.area_id) !== areaId) return false;
+      if (Number(loc.row_no) !== rowNo) return false;
+
+      if (isKtpArea(areaId)) {
+        if (isKtpSpecialRow(areaId, rowNo)) return true;
+        return Number(loc.shelf_no) === shelfNo;
+      }
+
+      return true;
+    })
+    .map((loc) => Number(loc.slot_no))
+    .filter(Boolean)
+    .sort((a, b) => a - b);
+
+  slots.forEach((slotNo) => {
+    slotSelect.insertAdjacentHTML(
+      "beforeend",
+      `<option value="${slotNo}">Ô ${getSlotLabel(areaId, slotNo)}</option>`
+    );
+  });
+
+  if (selectedSlot) slotSelect.value = String(selectedSlot);
+}
+
+function resolveMoveLocationId() {
+  const areaId = Number($("moveArea")?.value || State.currentAreaId || 1);
+  const rowNo = Number($("moveRow")?.value || 0);
+  const shelfNo = Number($("moveShelf")?.value || 0);
+  const slotNo = Number($("moveSlot")?.value || 0);
+
+  if ($("moveLocation")) $("moveLocation").value = "";
+
+  if (!areaId || !rowNo || !slotNo) {
+    updateMoveSelectedInfo();
+    return;
+  }
+
+  if (isKtpArea(areaId) && !isKtpSpecialRow(areaId, rowNo) && !shelfNo) {
+    updateMoveSelectedInfo();
+    return;
+  }
+
+  const found = State.allLocations
+    .map((loc) => normalizeLocationParts(loc))
+    .find((loc) => {
+      if (Number(loc.area_id) !== areaId) return false;
+      if (Number(loc.row_no) !== rowNo) return false;
+      if (Number(loc.slot_no) !== slotNo) return false;
+
+      if (isKtpArea(areaId)) {
+        if (isKtpSpecialRow(areaId, rowNo)) return true;
+        return Number(loc.shelf_no) === shelfNo;
+      }
+
+      return true;
+    });
+
+  if (found && $("moveLocation")) {
+    $("moveLocation").value = found.id;
+  }
+
+  updateMoveSelectedInfo(found || null);
+}
+
+function updateMoveSelectedInfo(loc = null) {
+  const box = $("moveSelectedLocationInfo");
+  if (!box) return;
+
+  const selectedLoc = loc || getLocationById(Number($("moveLocation")?.value || 0));
+
+  if (!selectedLoc) {
+    box.innerHTML = `
+      <span>Vị trí chuyển đến</span>
+      <strong>Chưa chọn vị trí</strong>
+      <p>Chọn lần lượt Khu vực → Dãy → Tầng/Ô.</p>
+    `;
+    box.classList.remove("selected");
+    return;
+  }
+
+  const x = normalizeLocationParts(selectedLoc);
+
+  box.innerHTML = `
+    <span>Vị trí chuyển đến</span>
+    <strong>${esc(x.location_code || "")}</strong>
+    <p>${esc(getLocationSelectText(x))}</p>
+  `;
+  box.classList.add("selected");
 }
 
 /* =========================
@@ -2305,26 +2513,8 @@ function switchView(mode) {
 
 /* =========================
    SELECT LOADERS - MOVE ONLY
+   Đã đổi sang picker Khu vực → Dãy → Tầng/Ô ở phần MOVE LOCATION PICKER.
 ========================= */
-
-async function loadAllLocationsForMove() {
-  const select = $("moveLocation");
-  if (!select) return;
-
-  select.innerHTML = `<option value="">Chọn vị trí</option>`;
-
-  const all = await loadAllLocationsCached();
-
-  all
-    .map((loc) => normalizeLocationParts(loc))
-    .sort(sortLocationByPosition)
-    .forEach((loc) => {
-      select.insertAdjacentHTML(
-        "beforeend",
-        `<option value="${loc.id}">${esc(getLocationSelectText(loc))}</option>`
-      );
-    });
-}
 /* =========================
    RELOAD
 ========================= */
