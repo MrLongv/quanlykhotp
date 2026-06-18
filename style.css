@@ -746,7 +746,7 @@ textarea{
 }
 
 .ktp-slot-grid{
-  grid-template-columns:repeat(3,minmax(0,1fr));
+  grid-template-columns:repeat(4,minmax(0,1fr));
 }
 
 .twenty-slot-grid{
@@ -1554,6 +1554,7 @@ textarea{
     padding:10px;
   }
 
+  .ktp-slot-grid,
   .twenty-slot-grid,
   .four-slot-grid{
     grid-template-columns:repeat(2,minmax(0,1fr));
@@ -1903,195 +1904,32 @@ textarea{
   }
 }
 
-/* =========================================================
-   HD SCREEN UI FIX - WAREHOUSE CELLS
-   Mục tiêu: màn hình HD 1366x768 không bị bóp ô, nút không bị khuất.
-   ========================================================= */
+/* =========================
+   LOG SEARCH
+========================= */
 
-/* Màn hình PC phổ thông/HD: cho tầng rộng hơn, tránh 3 tầng bị ép ngang */
-.ktp-shelf-wrap{
-  grid-template-columns:repeat(2,minmax(0,1fr));
-}
-
-/* Chỉ màn hình rất rộng mới hiển thị 3 tầng cùng một hàng */
-@media(min-width:1500px){
-  .ktp-shelf-wrap{
-    grid-template-columns:repeat(3,minmax(0,1fr));
-  }
-}
-
-/* Giảm độ chiếm chỗ của sidebar trên HD để phần sơ đồ rộng hơn */
-@media(min-width:1101px) and (max-width:1399px){
-  .main-layout{
-    grid-template-columns:248px minmax(0,1fr);
-    gap:12px;
-  }
-
-  .sidebar{
-    padding:12px;
-  }
-
-  .area-item{
-    min-height:56px;
-    padding:8px;
-  }
-
-  .area-icon{
-    width:30px;
-    height:30px;
-    flex-basis:30px;
-    border-radius:10px;
-  }
-
-  .area-item strong{
-    font-size:12px;
-  }
-
-  .area-item small{
-    font-size:10px;
-    line-height:1.2;
-  }
-}
-
-/* Ô vị trí: cao hơn, text gọn hơn, không làm khuất nút Chi tiết / Thêm */
-.shelf-box{
-  min-height:148px;
-  contain:layout paint;
-}
-
-.shelf-top{
-  padding:7px 8px;
-  grid-template-columns:1fr;
-  gap:3px;
-}
-
-.shelf-top strong{
-  font-size:16px;
-}
-
-.shelf-top span{
-  text-align:left;
-  font-size:10px;
-  max-width:100%;
-}
-
-.shelf-content{
-  padding:8px;
-  align-items:stretch;
-}
-
-.shelf-empty{
-  min-height:52px;
-  align-self:center;
-  white-space:nowrap;
-  font-size:13px;
-  letter-spacing:.02em;
-}
-
-.shelf-stock-list{
-  gap:6px;
-  align-self:start;
-}
-
-.shelf-stock-item{
-  padding:7px 8px;
-}
-
-.shelf-stock-item strong{
-  font-size:13px;
-}
-
-.shelf-stock-item span{
-  font-size:10.5px;
-  line-height:1.22;
-}
-
-.shelf-stock-item b{
-  margin-top:4px;
-  font-size:9.5px;
-  padding:3px 6px;
-}
-
-.shelf-more{
-  display:inline-flex;
+.log-search-bar{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto auto;
+  gap:8px;
   align-items:center;
-  justify-content:center;
-  min-height:24px;
-  padding:3px 7px;
-  border-radius:999px;
-  background:rgba(96,165,250,.16);
-  border:1px solid rgba(96,165,250,.28);
-  color:#bfdbfe;
-  font-size:11px;
+  margin-bottom:12px;
 }
 
-.shelf-actions{
-  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
-  gap:6px;
-  padding:7px;
+.log-search-box{
+  height:42px;
 }
 
-.shelf-actions button{
-  min-width:0;
-  min-height:34px;
-  padding:0 6px;
-  font-size:11.5px;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-}
-
-/* HD: vẫn giữ 4 ô mỗi hàng trong từng tầng, nhưng các tầng đã rộng hơn nhờ 2 cột */
-@media(min-width:1101px) and (max-width:1499px){
-  .ktp-slot-grid{
-    grid-template-columns:repeat(4,minmax(0,1fr));
-    gap:9px;
-  }
-
-  .warehouse-row-map{
-    padding:12px;
-  }
-
-  .ktp-shelf-block{
-    padding:10px;
-  }
-}
-
-/* Tablet / màn hình hẹp: mỗi tầng chiếm trọn hàng, ô không bị méo */
-@media(max-width:1100px){
-  .ktp-shelf-wrap{
-    grid-template-columns:1fr;
-  }
-
-  .ktp-slot-grid{
-    grid-template-columns:repeat(4,minmax(0,1fr));
-  }
+.log-search-bar .btn{
+  min-height:42px;
 }
 
 @media(max-width:760px){
-  .shelf-box{
-    min-height:138px;
+  .log-search-bar{
+    grid-template-columns:1fr;
   }
 
-  .shelf-empty{
-    min-height:46px;
-    font-size:12px;
-  }
-}
-
-@media(max-width:640px){
-  .ktp-slot-grid,
-  .twenty-slot-grid,
-  .four-slot-grid{
-    grid-template-columns:repeat(2,minmax(0,1fr));
-  }
-
-  .shelf-box{
-    min-height:132px;
-  }
-
-  .shelf-actions button{
-    font-size:11px;
-    padding:0 4px;
+  .log-search-bar .btn{
+    width:100%;
   }
 }
