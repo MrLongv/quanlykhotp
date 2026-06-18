@@ -353,11 +353,52 @@
         <input type="hidden" id="moveStockId" />
         <div class="move-info" id="moveStockInfo"></div>
 
-        <div class="form-group">
-          <label>Chọn vị trí mới</label>
-          <select id="moveLocation">
-            <option value="">Chọn vị trí</option>
-          </select>
+        <input type="hidden" id="moveLocation" />
+
+        <div class="move-picker-box">
+          <label class="move-picker-label">Chọn vị trí mới</label>
+
+          <div class="form-grid move-picker-grid">
+            <div class="form-group">
+              <label>Khu vực</label>
+              <select id="moveArea">
+                <option value="1">Kho thành phẩm</option>
+                <option value="2">Lầu 6</option>
+                <option value="4">Lầu 1</option>
+                <option value="3">Nhà xe</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Dãy</label>
+              <select id="moveRow">
+                <option value="">Chọn dãy</option>
+              </select>
+            </div>
+
+            <div class="form-group" id="moveShelfGroup">
+              <label>Tầng</label>
+              <select id="moveShelf">
+                <option value="">Chọn tầng</option>
+                <option value="1">Tầng 1</option>
+                <option value="2">Tầng 2</option>
+                <option value="3">Tầng 3</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Ô</label>
+              <select id="moveSlot">
+                <option value="">Chọn ô</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="move-selected-info" id="moveSelectedLocationInfo">
+            <span>Vị trí chuyển đến</span>
+            <strong>Chưa chọn vị trí</strong>
+            <p>Chọn lần lượt Khu vực → Dãy → Tầng/Ô.</p>
+          </div>
         </div>
 
         <div class="form-group">
