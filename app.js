@@ -863,7 +863,7 @@ function renderShelfBox(rawLoc) {
     : `
       <div class="shelf-stock-list">
         ${stocks
-          .slice(0, 3)
+          .slice(0, 2)
           .map(
             (s) => `
               <div class="shelf-stock-item">
@@ -875,8 +875,8 @@ function renderShelfBox(rawLoc) {
           )
           .join("")}
         ${
-          stocks.length > 3
-            ? `<div class="shelf-more">+${stocks.length - 3} mã khác</div>`
+          stocks.length > 2
+            ? `<div class="shelf-more">+${stocks.length - 2} mã khác</div>`
             : ""
         }
       </div>
@@ -1677,8 +1677,6 @@ function openDetailModal(locationId) {
       ? isKtpSpecialRow(loc.area_id, loc.row_no)
         ? `Kho TP - ${getRowName(loc.area_id, loc.row_no)} - Ô ${getSlotLabel(loc.area_id, loc.slot_no || loc.level_no)}`
         : `Kho TP - ${getRowName(loc.area_id, loc.row_no)} - Tầng ${loc.shelf_no} - Ô ${getSlotLabel(loc.area_id, loc.slot_no)}`
-      : getAreaCodeById(loc.area_id) === "L1"
-      ? `Lầu 1 - Ô ${getSlotLabel(loc.area_id, loc.slot_no || loc.level_no)}`
       : `${getAreaName(loc.area_id)} - ${getRowName(loc.area_id, loc.row_no)} - Ô ${getSlotLabel(loc.area_id, loc.slot_no || loc.level_no)}`;
 
   if (!stocks.length) {
@@ -2719,10 +2717,6 @@ function getLocationSelectText(loc) {
     }
 
     return `${x.location_code} - Kho TP - ${getRowName(x.area_id, x.row_no)} - Tầng ${x.shelf_no} - Ô ${getSlotLabel(x.area_id, x.slot_no)}`;
-  }
-
-  if (getAreaCodeById(x.area_id) === "L1") {
-    return `${x.location_code} - Lầu 1 - Ô ${getSlotLabel(x.area_id, x.slot_no || x.level_no)}`;
   }
 
   return `${x.location_code} - ${getAreaName(x.area_id)} - ${getRowName(x.area_id, x.row_no)} - Ô ${getSlotLabel(x.area_id, x.slot_no || x.level_no)}`;
