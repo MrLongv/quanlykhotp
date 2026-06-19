@@ -218,6 +218,7 @@ textarea{
 }
 
 #btnOpenLogs,
+#btnOpenExportStats,
 #btnRefresh,
 #btnExportExcel,
 #btnExportAllExcel{
@@ -227,6 +228,7 @@ textarea{
 }
 
 #btnOpenLogs:hover,
+#btnOpenExportStats:hover,
 #btnRefresh:hover,
 #btnExportExcel:hover,
 #btnExportAllExcel:hover{
@@ -1934,6 +1936,82 @@ textarea{
   }
 }
 
+
+
+/* =========================
+   EXPORT STATS
+========================= */
+
+.export-summary-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+  margin-bottom:12px;
+}
+
+.export-summary-card{
+  background:#111d33;
+  border:1px solid var(--line);
+  border-radius:15px;
+  padding:12px 14px;
+}
+
+.export-summary-card:nth-child(1){
+  border-left:3px solid #38bdf8;
+}
+
+.export-summary-card:nth-child(2){
+  border-left:3px solid #f59e0b;
+}
+
+.export-summary-card span{
+  display:block;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:900;
+}
+
+.export-summary-card strong{
+  display:block;
+  margin-top:4px;
+  color:#fff;
+  font-size:24px;
+  letter-spacing:-.04em;
+}
+
+.export-search-bar{
+  margin-top:0;
+}
+
+.export-stats-table{
+  min-width:1120px;
+}
+
+.export-stats-table td:nth-child(10),
+.export-stats-table th:nth-child(10){
+  text-align:right;
+}
+
+#btnExportStatsExcel{
+  border-color:rgba(34,197,94,.36);
+  color:#bbf7d0;
+  background:rgba(34,197,94,.13);
+}
+
+@media(max-width:760px){
+  .export-summary-grid{
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+  }
+
+  .export-summary-card{
+    padding:10px;
+  }
+
+  .export-summary-card strong{
+    font-size:21px;
+  }
+}
 
 /* =========================================================
    HD SCREEN UI FIX - WAREHOUSE CELLS
