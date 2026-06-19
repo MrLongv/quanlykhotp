@@ -56,6 +56,7 @@
         </div>
 
         <button class="btn ghost" id="btnOpenLogs">Nhật ký</button>
+        <button class="btn ghost" id="btnOpenExportStats">Thống kê xuất kho</button>
         <button class="btn ghost" id="btnRefresh">Làm mới</button>
         <button class="btn primary" id="btnExportExcel">Xuất khu vực</button>
         <button class="btn ghost" id="btnExportAllExcel">Xuất tất cả</button>
@@ -630,6 +631,79 @@
       </div>
     </div>
   </div>
+  <!-- MODAL: EXPORT STATS -->
+  <div class="modal-backdrop hidden" id="exportStatsModal">
+    <div class="modal large">
+      <div class="modal-header">
+        <div>
+          <h3>Thống kê xuất kho</h3>
+          <p>Tổng hợp các lượt xuất một phần và xuất hết khỏi kho</p>
+        </div>
+        <button class="icon-btn" id="btnCloseExportStatsModal">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="export-summary-grid">
+          <div class="export-summary-card">
+            <span>Tổng lượt xuất</span>
+            <strong id="exportStatsTotalRows">0</strong>
+          </div>
+          <div class="export-summary-card">
+            <span>Tổng số kiện xuất</span>
+            <strong id="exportStatsTotalCartons">0</strong>
+          </div>
+        </div>
+
+        <div class="log-search-bar export-search-bar">
+          <div class="search-box log-search-box">
+            <span class="search-icon">⌕</span>
+            <input
+              type="search"
+              id="exportStatsSearchInput"
+              placeholder="Tìm theo người xuất, mã hàng, PO, màu, khách hàng, vị trí hoặc nội dung..."
+              autocomplete="off"
+              enterkeyhint="search"
+            />
+          </div>
+
+          <button class="btn primary" id="btnSearchExportStats">Tìm</button>
+          <button class="btn ghost" id="btnClearExportStatsSearch">Xóa</button>
+        </div>
+
+        <div class="table-wrap export-stats-wrap" id="exportStatsContent">
+          <table class="data-table export-stats-table">
+            <thead>
+              <tr>
+                <th>Thời gian</th>
+                <th>Người xuất</th>
+                <th>Hành động</th>
+                <th>Mã hàng</th>
+                <th>PO</th>
+                <th>Màu</th>
+                <th>Size</th>
+                <th>Khách hàng</th>
+                <th>Vị trí xuất</th>
+                <th>Kiện xuất</th>
+                <th>Nội dung</th>
+              </tr>
+            </thead>
+            <tbody id="exportStatsTableBody">
+              <tr>
+                <td colspan="11" class="text-center">Chưa tải thống kê xuất kho.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn ghost" id="btnCloseExportStats">Đóng</button>
+        <button class="btn soft" id="btnExportStatsExcel">Xuất Excel</button>
+        <button class="btn primary" id="btnReloadExportStats">Tải lại</button>
+      </div>
+    </div>
+  </div>
+
 <!-- BACK TO TOP -->
 <button class="back-top-btn hidden" id="btnBackTop" title="Về đầu trang">
   ↑
