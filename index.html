@@ -56,7 +56,6 @@
         </div>
 
         <button class="btn ghost" id="btnOpenLogs">Nhật ký</button>
-        <button class="btn ghost" id="btnOpenExportStats">Thống kê xuất kho</button>
         <button class="btn ghost" id="btnRefresh">Làm mới</button>
         <button class="btn primary" id="btnExportExcel">Xuất khu vực</button>
         <button class="btn ghost" id="btnExportAllExcel">Xuất tất cả</button>
@@ -112,7 +111,7 @@
               <span class="area-icon">K</span>
               <div>
                 <strong>Kho thành phẩm</strong>
-                <small>20 dãy chính: 1, 2, 3, G1-G17; mỗi tầng 12 ô. Dãy N 32 ô. M1-M11 mỗi dãy 12 ô, 1 tầng</small>
+                <small>20 dãy chính: 1, 2, 3, G1-G17; mỗi tầng 12 ô. Dãy N 32 ô. M1-M5, M7, M9, M11, M13, M15 mỗi dãy 12 ô, 1 tầng</small>
               </div>
             </button>
 
@@ -154,7 +153,7 @@
 
         <div class="sidebar-note">
           <strong>Gợi ý sử dụng</strong>
-          <p>Kho TP thường quản lý theo Dãy → Tầng → Ô. Riêng Dãy N và M1-M11 quản lý theo Dãy → Ô. Lầu 6, Lầu 1 và Nhà xe quản lý theo Dãy → Ô.</p>
+          <p>Kho TP thường quản lý theo Dãy → Tầng → Ô. Riêng Dãy N và M1-M5, M7, M9, M11, M13, M15 quản lý theo Dãy → Ô. Lầu 6, Lầu 1 và Nhà xe quản lý theo Dãy → Ô.</p>
         </div>
       </aside>
 
@@ -181,7 +180,7 @@
         <div class="content-header">
           <div>
             <h2 id="currentAreaTitle">Kho thành phẩm</h2>
-            <p id="currentAreaDesc">Sơ đồ Kho thành phẩm: 20 dãy chính (1, 2, 3, G1-G17), mỗi dãy 3 tầng, mỗi tầng 12 ô + Dãy N 32 ô + M1-M11, mỗi dãy 12 ô</p>
+            <p id="currentAreaDesc">Sơ đồ Kho thành phẩm: 20 dãy chính (1, 2, 3, G1-G17), mỗi dãy 3 tầng, mỗi tầng 12 ô + Dãy N 32 ô + M1-M5, M7, M9, M11, M13, M15, mỗi dãy 12 ô</p>
           </div>
 
           <div class="view-toggle">
@@ -421,7 +420,7 @@
       <div class="modal-header">
         <div>
           <h3>Thêm dãy mới</h3>
-          <p>Kho TP thường tạo 3 tầng × 12 ô. Dãy N tạo 32 ô. M1-M11 tạo 12 ô/dãy, 1 tầng. Lầu 6 tạo 22 ô. Nhà xe tạo 4 ô A-D.</p>
+          <p>Kho TP thường tạo 3 tầng × 12 ô. Dãy N tạo 32 ô. M1-M5, M7, M9, M11, M13, M15 tạo 12 ô/dãy, 1 tầng. Lầu 6 tạo 22 ô. Nhà xe tạo 4 ô A-D.</p>
         </div>
         <button class="icon-btn" id="btnCloseRowModal">×</button>
       </div>
@@ -444,7 +443,7 @@
 
         <div class="form-note">
           <strong>Lưu ý:</strong>
-          Kho thành phẩm có 20 dãy chính: 1, 2, 3, G1-G17; mỗi dãy 3 tầng, mỗi tầng 12 ô. Dãy N là dãy số 21 gồm 32 ô, không chia tầng. M1-M11 là dãy số 22 đến 32, mỗi dãy 12 ô, 1 tầng.
+          Kho thành phẩm có 20 dãy chính: 1, 2, 3, G1-G17; mỗi dãy 3 tầng, mỗi tầng 12 ô. Dãy N là dãy số 21 gồm 32 ô, không chia tầng. Dãy M gồm M1, M2, M3, M4, M5, M7, M9, M11, M13, M15; tương ứng dãy số 22 đến 31, mỗi dãy 12 ô, 1 tầng.
           Lầu 6 có 15 dãy, mỗi dãy 22 ô. Lầu 1 có 30 ô. Nhà xe có 9 dãy, mỗi dãy 4 ô A, B, C, D.
         </div>
       </div>
@@ -462,7 +461,7 @@
       <div class="modal-header">
         <div>
           <h3>Thêm ô mới</h3>
-          <p>Thêm ô vào tầng của Kho TP thường, hoặc thêm ô vào Dãy N/M1-M11/Lầu 6/Lầu 1/Nhà xe</p>
+          <p>Thêm ô vào tầng của Kho TP thường, hoặc thêm ô vào Dãy N/M mới/Lầu 6/Lầu 1/Nhà xe</p>
         </div>
         <button class="icon-btn" id="btnCloseSlotModal">×</button>
       </div>
@@ -499,7 +498,7 @@
 
         <div class="form-note">
           <strong>Ví dụ:</strong>
-          Kho TP thường: chọn dãy 1-20 và tầng, mỗi tầng tối đa 12 ô. Dãy N nhập dãy 21, tối đa 32 ô, không cần tầng. M1-M11 nhập dãy 22-32, mỗi dãy tối đa 12 ô, không cần tầng. Lầu 6 tối đa 22 ô/dãy. Lầu 1 tối đa 30 ô. Nhà xe tối đa 4 ô A-D.
+          Kho TP thường: chọn dãy 1-20 và tầng, mỗi tầng tối đa 12 ô. Dãy N nhập dãy 21, tối đa 32 ô, không cần tầng. Dãy M mới nhập dãy 22-31, tương ứng M1, M2, M3, M4, M5, M7, M9, M11, M13, M15; mỗi dãy tối đa 12 ô, không cần tầng. Lầu 6 tối đa 22 ô/dãy. Lầu 1 tối đa 30 ô. Nhà xe tối đa 4 ô A-D.
         </div>
       </div>
 
@@ -631,79 +630,6 @@
       </div>
     </div>
   </div>
-  <!-- MODAL: EXPORT STATS -->
-  <div class="modal-backdrop hidden" id="exportStatsModal">
-    <div class="modal large">
-      <div class="modal-header">
-        <div>
-          <h3>Thống kê xuất kho</h3>
-          <p>Tổng hợp các lượt xuất một phần và xuất hết khỏi kho</p>
-        </div>
-        <button class="icon-btn" id="btnCloseExportStatsModal">×</button>
-      </div>
-
-      <div class="modal-body">
-        <div class="export-summary-grid">
-          <div class="export-summary-card">
-            <span>Tổng lượt xuất</span>
-            <strong id="exportStatsTotalRows">0</strong>
-          </div>
-          <div class="export-summary-card">
-            <span>Tổng số kiện xuất</span>
-            <strong id="exportStatsTotalCartons">0</strong>
-          </div>
-        </div>
-
-        <div class="log-search-bar export-search-bar">
-          <div class="search-box log-search-box">
-            <span class="search-icon">⌕</span>
-            <input
-              type="search"
-              id="exportStatsSearchInput"
-              placeholder="Tìm theo người xuất, mã hàng, PO, màu, khách hàng, vị trí hoặc nội dung..."
-              autocomplete="off"
-              enterkeyhint="search"
-            />
-          </div>
-
-          <button class="btn primary" id="btnSearchExportStats">Tìm</button>
-          <button class="btn ghost" id="btnClearExportStatsSearch">Xóa</button>
-        </div>
-
-        <div class="table-wrap export-stats-wrap" id="exportStatsContent">
-          <table class="data-table export-stats-table">
-            <thead>
-              <tr>
-                <th>Thời gian</th>
-                <th>Người xuất</th>
-                <th>Hành động</th>
-                <th>Mã hàng</th>
-                <th>PO</th>
-                <th>Màu</th>
-                <th>Size</th>
-                <th>Khách hàng</th>
-                <th>Vị trí xuất</th>
-                <th>Kiện xuất</th>
-                <th>Nội dung</th>
-              </tr>
-            </thead>
-            <tbody id="exportStatsTableBody">
-              <tr>
-                <td colspan="11" class="text-center">Chưa tải thống kê xuất kho.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn ghost" id="btnCloseExportStats">Đóng</button>
-        <button class="btn soft" id="btnExportStatsExcel">Xuất Excel</button>
-        <button class="btn primary" id="btnReloadExportStats">Tải lại</button>
-      </div>
-    </div>
-  </div>
-
 <!-- BACK TO TOP -->
 <button class="back-top-btn hidden" id="btnBackTop" title="Về đầu trang">
   ↑
