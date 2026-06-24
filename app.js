@@ -4,9 +4,11 @@ const KTP_NORMAL_MAX_ROWS = 20;
 const KTP_N_ROW_NO = 21;
 const KTP_N_SLOTS = 32;
 const KTP_M_START_ROW_NO = 22;
-const KTP_M_COUNT = 11;
+const KTP_M_LABELS = ["M1", "M2", "M3", "M4", "M5", "M7", "M9", "M11", "M13", "M15"];
+const KTP_M_COUNT = KTP_M_LABELS.length;
 const KTP_M_SLOTS = 12;
 const KTP_M_END_ROW_NO = KTP_M_START_ROW_NO + KTP_M_COUNT - 1;
+const KTP_M_LABEL_TEXT = KTP_M_LABELS.join(", ");
 const KTP_MAX_ROWS = KTP_M_END_ROW_NO;
 
 const KTP_SHELVES_PER_ROW = 3;
@@ -47,7 +49,6 @@ const State = {
   locationIdSet: new Set(),
   searchResults: [],
   pendingTransfers: [],
-  exportStats: [],
   selectedLocationId: null,
   token: localStorage.getItem("warehouse_token") || "",
   user: readSavedUser(),
@@ -96,16 +97,21 @@ function isKtpMRow(rowNo) {
 }
 
 function getKtpMIndex(rowNo) {
-  return Number(rowNo || 0) - KTP_M_START_ROW_NO + 1;
+  return Number(rowNo || 0) - KTP_M_START_ROW_NO;
+}
+
+function getKtpMLabel(rowNo) {
+  const idx = getKtpMIndex(rowNo);
+  return KTP_M_LABELS[idx] || "";
 }
 
 function getKtpSpecialRow(rowNo) {
   const row = Number(rowNo || 0);
   if (row === KTP_N_ROW_NO) return { code: "N", label: "Dãy N", slots: KTP_N_SLOTS };
-  if (isKtpMRow(row)) {
-    const idx = getKtpMIndex(row);
-    return { code: `M${idx}`, label: `M${idx}`, slots: KTP_M_SLOTS };
-  }
+
+  const mLabel = getKtpMLabel(row);
+  if (mLabel) return { code: mLabel, label: mLabel, slots: KTP_M_SLOTS };
+
   return null;
 }
 
@@ -494,7 +500,6 @@ function applyPermissionUI() {
   if ($("btnAddSlot")) $("btnAddSlot").style.display = admin ? "" : "none";
   if ($("btnOpenAddStock")) $("btnOpenAddStock").style.display = editable ? "" : "none";
   if ($("btnOpenLogs")) $("btnOpenLogs").style.display = admin ? "" : "none";
-  if ($("btnOpenExportStats")) $("btnOpenExportStats").style.display = admin ? "" : "none";
   if ($("btnOpenPendingTransfers")) $("btnOpenPendingTransfers").style.display = editable ? "" : "none";
 }
 
@@ -532,23 +537,6 @@ function bindEvents() {
     if (e.key === "Enter") {
       e.preventDefault();
       loadLogs();
-    }
-  });
-
-  $("btnOpenExportStats")?.addEventListener("click", openExportStatsModal);
-  $("btnCloseExportStatsModal")?.addEventListener("click", closeExportStatsModal);
-  $("btnCloseExportStats")?.addEventListener("click", closeExportStatsModal);
-  $("btnReloadExportStats")?.addEventListener("click", loadExportStats);
-  $("btnSearchExportStats")?.addEventListener("click", loadExportStats);
-  $("btnExportStatsExcel")?.addEventListener("click", exportExportStatsExcel);
-  $("btnClearExportStatsSearch")?.addEventListener("click", () => {
-    if ($("exportStatsSearchInput")) $("exportStatsSearchInput").value = "";
-    loadExportStats();
-  });
-  $("exportStatsSearchInput")?.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      loadExportStats();
     }
   });
 
@@ -711,7 +699,7 @@ function renderHeader() {
   if ($("currentAreaDesc")) {
     $("currentAreaDesc").textContent =
       isKtpArea(State.currentAreaId)
-        ? `Sơ đồ Kho thành phẩm: 20 dãy chính (${getKtpRowLabel(1)}, ${getKtpRowLabel(2)}, ${getKtpRowLabel(3)}, G1-G17), mỗi tầng ${KTP_SLOTS_PER_SHELF} ô + Dãy N ${KTP_N_SLOTS} ô + M1-M11, mỗi dãy ${KTP_M_SLOTS} ô`
+        ? `Sơ đồ Kho thành phẩm: 20 dãy chính (${getKtpRowLabel(1)}, ${getKtpRowLabel(2)}, ${getKtpRowLabel(3)}, G1-G17), mỗi tầng ${KTP_SLOTS_PER_SHELF} ô + Dãy N ${KTP_N_SLOTS} ô + ${KTP_M_LABEL_TEXT}, mỗi dãy ${KTP_M_SLOTS} ô`
         : isParkingArea(State.currentAreaId)
         ? `Sơ đồ Nhà xe: ${NX_MAX_ROWS} dãy, mỗi dãy 4 ô A, B, C, D`
         : getAreaCodeById(State.currentAreaId) === "L1"
@@ -2461,7 +2449,6 @@ async function openLogsModal() {
 
 function closeLogsModal() {
   $("logsModal")?.classList.add("hidden");
-  $("exportStatsModal")?.classList.add("hidden");
   unlockBodyScroll();
 }
 
@@ -2509,189 +2496,6 @@ async function loadLogs() {
   } finally {
     showLoading(false);
   }
-}
-
-
-/* =========================
-   EXPORT STATS
-========================= */
-
-async function openExportStatsModal() {
-  if (!isAdmin()) return toast("Chỉ admin được xem thống kê xuất kho.");
-
-  $("exportStatsModal")?.classList.remove("hidden");
-  lockBodyScroll();
-
-  await loadExportStats();
-}
-
-function closeExportStatsModal() {
-  $("exportStatsModal")?.classList.add("hidden");
-  unlockBodyScroll();
-}
-
-async function loadExportStats() {
-  if (!isAdmin()) return;
-
-  const tbody = $("exportStatsTableBody");
-  if (!tbody) return;
-
-  try {
-    showLoading(true);
-
-    const q = clean($("exportStatsSearchInput")?.value || "");
-    const url = `/api/export-stats?limit=500${q ? `&q=${encodeURIComponent(q)}` : ""}`;
-    const rows = await apiGet(url);
-
-    State.exportStats = rows || [];
-    renderExportStats(State.exportStats, q);
-  } catch (err) {
-    console.error(err);
-    toast(err.message || "Không tải được thống kê xuất kho.");
-  } finally {
-    showLoading(false);
-  }
-}
-
-function renderExportStats(rows, q = "") {
-  const tbody = $("exportStatsTableBody");
-  if (!tbody) return;
-
-  const safeRows = rows || [];
-  const totalQty = safeRows.reduce((sum, row) => sum + getExportedQty(row), 0);
-
-  if ($("exportStatsTotalRows")) $("exportStatsTotalRows").textContent = safeRows.length;
-  if ($("exportStatsTotalCartons")) $("exportStatsTotalCartons").textContent = totalQty;
-
-  if (!safeRows.length) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="11" class="text-center">${q ? "Không tìm thấy dữ liệu xuất kho phù hợp." : "Chưa có dữ liệu xuất kho."}</td>
-      </tr>
-    `;
-    return;
-  }
-
-  tbody.innerHTML = safeRows
-    .map((row) => {
-      const actionText =
-        row.action === "partial_export"
-          ? "Xuất một phần"
-          : row.action === "exported"
-          ? "Xuất hết"
-          : row.action || "";
-
-      const locationCode =
-        row.old_location_code ||
-        row.new_location_code ||
-        row.location_code ||
-        "";
-
-      return `
-        <tr>
-          <td>${esc(formatDateTime(row.created_at))}</td>
-          <td>${esc(row.user_name || "")}</td>
-          <td>${esc(actionText)}</td>
-          <td><strong>${esc(row.style_code || "")}</strong></td>
-          <td>${esc(row.po_no || "")}</td>
-          <td>${esc(row.color || "")}</td>
-          <td>${esc(row.size || "")}</td>
-          <td>${esc(row.customer || "")}</td>
-          <td>${esc(locationCode)}</td>
-          <td><strong>${getExportedQty(row)}</strong></td>
-          <td>${esc(row.content || "")}</td>
-        </tr>
-      `;
-    })
-    .join("");
-}
-
-function getExportedQty(row) {
-  const direct = Number(row?.exported_qty ?? NaN);
-  if (!Number.isNaN(direct)) return Math.max(direct, 0);
-
-  const oldQty = Number(row?.old_carton_qty || 0);
-  const newQty = Number(row?.new_carton_qty || 0);
-
-  if (row?.action === "partial_export") return Math.max(oldQty - newQty, 0);
-  if (row?.action === "exported") return Math.max(oldQty, 0);
-
-  return 0;
-}
-
-function exportExportStatsExcel() {
-  if (typeof XLSX === "undefined") {
-    toast("Chưa tải được thư viện Excel.");
-    return;
-  }
-
-  const rows = State.exportStats || [];
-
-  if (!rows.length) {
-    toast("Không có dữ liệu thống kê xuất kho để xuất.");
-    return;
-  }
-
-  const data = rows.map((row) => {
-    const actionText =
-      row.action === "partial_export"
-        ? "Xuất một phần"
-        : row.action === "exported"
-        ? "Xuất hết"
-        : row.action || "";
-
-    return {
-      "Thời gian": formatDateTime(row.created_at),
-      "Người xuất": cleanExcelText(row.user_name || ""),
-      "Hành động": cleanExcelText(actionText),
-      "Mã hàng": cleanExcelText(row.style_code || ""),
-      "PO": cleanExcelText(row.po_no || ""),
-      "Màu": cleanExcelText(row.color || ""),
-      "Size": cleanExcelText(row.size || ""),
-      "Khách hàng": cleanExcelText(row.customer || ""),
-      "Vị trí xuất": cleanExcelText(row.old_location_code || row.new_location_code || ""),
-      "Số kiện xuất": getExportedQty(row),
-      "Nội dung": cleanExcelText(row.content || ""),
-    };
-  });
-
-  const keyword = clean($("exportStatsSearchInput")?.value || "tat-ca")
-    .replace(/[\\/:*?"<>|]/g, "-")
-    .replace(/\s+/g, "-");
-
-  writeExportStatsExcelFile(
-    data,
-    "Thong ke xuat kho",
-    `thong-ke-xuat-kho-${keyword}-${todayText()}.xlsx`
-  );
-
-  toast("Đã xuất Excel thống kê xuất kho.");
-}
-
-function writeExportStatsExcelFile(data, sheetName, fileName) {
-  const ws = XLSX.utils.json_to_sheet(data);
-
-  ws["!cols"] = [
-    { wch: 20 },
-    { wch: 18 },
-    { wch: 16 },
-    { wch: 22 },
-    { wch: 18 },
-    { wch: 14 },
-    { wch: 12 },
-    { wch: 20 },
-    { wch: 22 },
-    { wch: 12 },
-    { wch: 42 },
-  ];
-
-  ws["!autofilter"] = {
-    ref: `A1:K${data.length + 1}`,
-  };
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, sheetName);
-  XLSX.writeFile(wb, fileName);
 }
 
 /* =========================
@@ -2946,7 +2750,6 @@ function closeAllModals() {
   $("slotModal")?.classList.add("hidden");
   $("partialExportModal")?.classList.add("hidden");
   $("logsModal")?.classList.add("hidden");
-  $("exportStatsModal")?.classList.add("hidden");
   $("pendingTransferModal")?.classList.add("hidden");
   $("completeTransferModal")?.classList.add("hidden");
 
