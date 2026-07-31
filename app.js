@@ -217,11 +217,22 @@ async function apiGet(url) {
 }
 
 async function apiPost(url, data) {
-  const res = await fetch(API_BASE + url, {
-    method: "POST",
-    headers: authHeaders(),
-    body: JSON.stringify(data || {}),
-  });
+  let res;
+
+  try {
+    res = await fetch(API_BASE + url, {
+      method: "POST",
+      mode: "cors",
+      cache: "no-store",
+      headers: authHeaders(),
+      body: JSON.stringify(data || {}),
+    });
+  } catch (err) {
+    console.error("POST network error:", API_BASE + url, err);
+    throw new Error(
+      "Không kết nối được máy chủ khi lưu dữ liệu. Hãy kiểm tra mạng, Worker và CORS."
+    );
+  }
 
   if (res.status === 401) {
     forceLogout("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
@@ -229,15 +240,19 @@ async function apiPost(url, data) {
   }
 
   if (!res.ok) {
-    let msg = "API POST lỗi: " + url;
+    let msg = `API POST lỗi ${res.status}: ${url}`;
     try {
-      const data = await res.json();
-      msg = data.error || msg;
+      const responseData = await res.json();
+      msg = responseData.error || msg;
     } catch {}
     throw new Error(msg);
   }
 
-  return await res.json();
+  try {
+    return await res.json();
+  } catch {
+    throw new Error("Máy chủ đã phản hồi nhưng dữ liệu trả về không hợp lệ.");
+  }
 }
 
 async function apiPut(url, data) {
@@ -601,7 +616,12 @@ function bindEvents() {
 function bindModalEvents() {
   $("btnCloseStockModal")?.addEventListener("click", closeStockModal);
   $("btnCancelStock")?.addEventListener("click", closeStockModal);
-  $("btnSaveStock")?.addEventListener("click", saveStock);
+  $("btnSaveStock")?.addEventListener("click", (event) => {
+    // Ngăn nút trong <form> tự submit/reload trang làm fetch bị hủy.
+    event.preventDefault();
+    event.stopPropagation();
+    saveStock(event);
+  });
 
   $("btnCloseMoveModal")?.addEventListener("click", closeMoveModal);
   $("btnCancelMove")?.addEventListener("click", closeMoveModal);
@@ -1367,12 +1387,16 @@ function resetStockForm() {
   if ($("note")) $("note").value = "";
 }
 
-async function saveStock() {
+async function saveStock(event = null) {
+  event?.preventDefault?.();
+  event?.stopPropagation?.();
+
   if (!canEdit()) return toast("Bạn không có quyền lưu hàng.");
 
   resolveStockLocationId();
 
   const id = $("stockId").value;
+  const saveButton = $("btnSaveStock");
 
   const payload = {
     location_id: Number($("stockLocation").value),
@@ -1388,9 +1412,20 @@ async function saveStock() {
   if (!payload.location_id) return toast("Vui lòng chọn đủ Khu vực, Dãy, Tầng/Ô.");
   if (!payload.style_code) return toast("Vui lòng nhập mã hàng.");
   if (!payload.po_no) return toast("Vui lòng nhập PO.");
-  if (payload.carton_qty < 0) return toast("Số kiện không hợp lệ.");
+  if (!Number.isFinite(payload.carton_qty) || payload.carton_qty <= 0) {
+    return toast("Số kiện phải lớn hơn 0.");
+  }
+
+  // Chặn bấm Lưu nhiều lần khi mạng chậm.
+  if (saveButton?.disabled) return;
 
   try {
+    if (saveButton) {
+      saveButton.disabled = true;
+      saveButton.dataset.oldText = saveButton.textContent || "Lưu hàng";
+      saveButton.textContent = "Đang lưu...";
+    }
+
     showLoading(true);
 
     if (id) {
@@ -1401,12 +1436,25 @@ async function saveStock() {
       toast("Đã thêm hàng vào vị trí.");
     }
 
+    // API lưu đã thành công thì đóng form ngay. Việc tải lại dữ liệu là bước riêng,
+    // không được báo nhầm rằng lưu thất bại nếu chỉ phần làm mới bị lỗi mạng.
     closeAllModals();
-    await reloadStocksAndLocations();
+
+    try {
+      await reloadStocksAndLocations();
+    } catch (reloadError) {
+      console.error("Đã lưu nhưng tải lại dữ liệu thất bại:", reloadError);
+      toast("Đã lưu thành công, nhưng chưa tải lại được màn hình. Hãy bấm Làm mới.");
+    }
   } catch (err) {
-    console.error(err);
+    console.error("Lỗi lưu hàng:", err);
     toast(err.message || "Lưu không thành công.");
   } finally {
+    if (saveButton) {
+      saveButton.disabled = false;
+      saveButton.textContent = saveButton.dataset.oldText || "Lưu hàng";
+      delete saveButton.dataset.oldText;
+    }
     showLoading(false);
   }
 }
